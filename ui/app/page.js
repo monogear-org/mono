@@ -53,11 +53,11 @@ function home() {
 
             <div className='overflow-hidden'>
                 <article className="grid gap-4 text-center relative z-10 pt-10">
-                   <h1 className='text-6xl font-large leading-[120%] tracking-[-1.04px] text-white'>
-                    Setup Monorepo in minutes
+                   <h1 className='text-6xl font-medium leading-[120%] tracking-[-1.04px] text-white'>
+                    Setup <p className='inline-block' style={{color:"#3273FF"}}>Monorepo</p> in minutes
                    </h1>
-                   <h1 className='text-5xl font-large leading-[50%] text-white'>
-                    Scale across every project
+                   <h1 className='text-6xl font-medium leading-[50%] text-white'>
+                    Scale to every project
                    </h1>
                    <div className="flex justify-center items-center">
                         <h2 className='mt-8 text-center font-md' style={{maxWidth:"50vw"}}>
