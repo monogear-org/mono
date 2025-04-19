@@ -166,7 +166,8 @@ def repo_file_tree(repo, branch):
     if not os.path.isdir(repo_path):
         return json.dumps({})
     with tempfile.TemporaryDirectory() as tmp:
-        print(os.system("git config --global --add safe.directory /var/www/git/*"))
+        p=os.system("git config --global --add safe.directory /var/www/git/"+repo)
+        print(p)
         result = subprocess.run(["git", "clone", "--branch", branch, "--single-branch", repo_path, tmp], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode != 0:
             return json.dumps({"error": "clone failed", "details": result.stderr.decode()})
@@ -197,6 +198,18 @@ def repo_commits(repo, branch):
         if len(parts) == 3:
             commits.append({"hash": parts[0], "author": parts[1], "date": parts[2]})
     return json.dumps(commits)
+
+@app.route("/repo/new/<name>", methods=["GET"])
+def create_repo(name):
+    if not name or "/" in name or name.endswith(".git"):
+        return json.dumps({"error": "invalid repo name"})
+    repo_dir = f"/var/www/git/{name}.git"
+    if os.path.exists(repo_dir):
+        return json.dumps({"error": "repo exists"})
+    result = subprocess.run(["git", "init", "--bare", repo_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode != 0:
+        return json.dumps({"error": result.stderr.decode()})
+    return json.dumps({"created": True})
 
 regenerate_htpasswd()
 regenerate_apache_conf()
