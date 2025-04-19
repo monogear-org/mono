@@ -1,10 +1,30 @@
 import React from 'react';
-import Earth from '@/components/globe';
 import Nav from '@/components/nav';
 import { Sparkles } from '@/components/sparkles';
 import { InteractiveHoverButton } from '@/components/magicui/interactive-hover-button';
-
+import { cn } from "@/lib/utils";
+import { AnimatedShinyText } from "@/components/magicui/animated-shiny-text";
+import { ArrowRightIcon } from "@radix-ui/react-icons";
 import logo from "@/public/logo.png"
+import { ShimmerButton } from "@/components/magicui/shimmer-button";
+
+ 
+export function AnimatedShinyTextDemo() {
+  return (
+    <div className="z-10 flex h-10 items-center justify-center mt-36">
+      <div
+        className={cn(
+          "group rounded-full border border-black/5 bg-neutral-100 text-base text-white transition-all ease-in hover:cursor-pointer hover:bg-neutral-200 dark:border-white/5 dark:bg-neutral-900 dark:hover:bg-neutral-800",
+        )}
+      >
+        <AnimatedShinyText className="inline-flex items-center justify-center px-4 py-1 transition ease-out hover:text-neutral-600 hover:duration-300 hover:dark:text-neutral-400">
+          <span>✨ Introducing MonoGear v0.14</span>
+          <ArrowRightIcon className="ml-1 w-3 h-3 transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
+        </AnimatedShinyText>
+      </div>
+    </div>
+  );
+}
 
 function home() {
     return (
@@ -27,24 +47,26 @@ function home() {
             </div>
             {/* <Nav /> */}
 
-            <div class="absolute top-0 left-0 w-screen h-screen overflow-visible grid-my [transform:_translateY(25%)]">
-                <div class="grid-lines-my [transform-origin:_center_center] [transform:_scale(-1,-1)_translateY(33.3%)] h-[150%]"></div>
-                <div class="grid-lines-my [transform:_rotateX(70deg)_translateY(0px)_translateX(5px)]"></div>
-            </div>
-
-            <div class="absolute pointer-events-none inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_center,white,transparent_27%)] opacity-[25%] blur-[100px] z-[1] h-screen w-screen"></div>
-
-            <div class="absolute h-[calc(100vh-72px)] flex justify-center items-center flex-col gap-10 w-4/5 mx-auto z-[100]">
-                <p class="text-center text-7xl font-medium leading-[120%] tracking-[-1.08px] text-white">The Future of <span class="omega">AI</span> on Distributed Computing powered by <span class="omega">ZK Proofs</span></p>
-                <div class="flex">
+            {AnimatedShinyTextDemo()}
 
 
-                </div>
-            </div>
 
-            <div className='overflow-hidden mt-72'>
+            <div className='overflow-hidden'>
                 <article className="grid gap-4 text-center relative z-10 pt-10">
-                    <Earth />
+                   <h1 className='text-6xl font-large leading-[120%] tracking-[-1.04px] text-white'>
+                    Setup Monorepo in minutes
+                   </h1>
+                   <h1 className='text-5xl font-large leading-[50%] text-white'>
+                    Scale across every project
+                   </h1>
+                   <div className="flex justify-center items-center">
+                        <h2 className='mt-8 text-center font-md' style={{maxWidth:"50vw"}}>
+                                Monogear is a Dockerized, self‑hosted monorepo platform with full Git compatibility, fine‑grained access controls, built‑in code viewing, customizable CI/CD and PR support, and extensibility via bots and plugins.</h2>
+                   </div>
+
+                   <div className="flex justify-center items-center mt-10">
+                        <button type="button" className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-900 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700 text-xl pr-8 pl-8">Start Setup</button>
+                   </div>
                 </article>
                 <div className="relative -mt-32 h-80 w-screen overflow-hidden [mask-image:radial-gradient(50%_50%,white,transparent)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_bottom_center,#3273ff,transparent_90%)] before:opacity-40 after:absolute after:-left-1/2 after:top-1/2 after:aspect-[1/0.7] after:w-[200%] after:rounded-[10%] after:border-t after:border-[#163474] after:bg-[#08132b]">
                     <Sparkles
