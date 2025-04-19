@@ -1,5 +1,6 @@
 import subprocess, json
-from flask import Flask, config, request
+from flask import Flask, request
+import os, tempfile
 
 app = Flask(__name__)
 
@@ -138,6 +139,64 @@ def reload_apache():
 def manual_reload():
     reload_apache()
     return "Apache reloading"
+
+@app.route("/repos")
+def list_repos():
+    base = "/var/www/git"
+    try:
+        repos = [x for x in os.listdir(base) if x.endswith(".git") and os.path.isdir(os.path.join(base, x))]
+    except:
+        repos = []
+    return json.dumps(sorted(repos))
+
+@app.route("/repo/<repo>/branches")
+def repo_branches(repo):
+    base = "/var/www/git"
+    repo_path = os.path.join(base, repo)
+    if not os.path.isdir(repo_path):
+        return json.dumps([])
+    p = subprocess.run(["git", "--git-dir", repo_path, "branch", "-a", "--format=%(refname:short)"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    branches = [b for b in p.stdout.decode().splitlines() if b]
+    return json.dumps(sorted(branches))
+
+@app.route("/repo/<repo>/<branch>/file_tree")
+def repo_file_tree(repo, branch):
+    base = "/var/www/git"
+    repo_path = os.path.join(base, repo)
+    if not os.path.isdir(repo_path):
+        return json.dumps({})
+    with tempfile.TemporaryDirectory() as tmp:
+        print(os.system("git config --global --add safe.directory /var/www/git/*"))
+        result = subprocess.run(["git", "clone", "--branch", branch, "--single-branch", repo_path, tmp], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            return json.dumps({"error": "clone failed", "details": result.stderr.decode()})
+        tree = {}
+        for root, dirs, files in os.walk(tmp):
+            rel = os.path.relpath(root, tmp)
+            d = tree
+            if rel != ".":
+                for part in rel.split(os.sep):
+                    d = d.setdefault(part, {})
+            for f in sorted(files):
+                d[f] = None
+            for dir in sorted(dirs):
+                d.setdefault(dir, {})
+        return json.dumps(tree, sort_keys=True)
+
+@app.route("/repo/<repo>/<branch>/commits")
+def repo_commits(repo, branch):
+    base = "/var/www/git"
+    repo_path = os.path.join(base, repo)
+    if not os.path.isdir(repo_path):
+        return json.dumps([])
+    p = subprocess.run(["git", "--git-dir", repo_path, "log", branch, "--pretty=format:%H|%an|%ad", "--date=iso"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    lines = p.stdout.decode().splitlines()
+    commits = []
+    for line in lines:
+        parts = line.split("|", 2)
+        if len(parts) == 3:
+            commits.append({"hash": parts[0], "author": parts[1], "date": parts[2]})
+    return json.dumps(commits)
 
 regenerate_htpasswd()
 regenerate_apache_conf()
