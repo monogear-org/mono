@@ -28,6 +28,17 @@ while read oldrev newrev refname\n\
 do\n\
   BRANCH=$(echo "$refname" | sed "s|refs/heads/||")\n\
   COMMIT_HASH="$newrev"\n\
+  WORKDIR="/tmp/${REPO_NAME}-${BRANCH}-${COMMIT_HASH}"\n\
+  ZIP_PATH="/tmp/${REPO_NAME}-${BRANCH}-${COMMIT_HASH}.zip"\n\
+  rm -rf "$WORKDIR"\n\
+  mkdir -p "$WORKDIR"\n\
+  git --work-tree="$WORKDIR" checkout "$COMMIT_HASH" -- .\n\
+  cd "$WORKDIR"\n\
+  zip -r "$ZIP_PATH" . > /dev/null\n\
+  curl -X POST "http://localhost:5000/cicd/${REPO_NAME}/${BRANCH}/${COMMIT_HASH}" || echo "API call failed"\n\
+  rm -rf "$WORKDIR"\n\
+done' > /usr/local/bin/git-post-receive && chmod +x /usr/local/bin/git-post-receive  BRANCH=$(echo "$refname" | sed "s|refs/heads/||")\n\
+  COMMIT_HASH="$newrev"\n\
   WORKDIR="/tmp/${REPO_NAME}-${COMMIT_HASH}"\n\
   ZIP_PATH="/tmp/${COMMIT_HASH}.zip"\n\
   rm -rf "$WORKDIR"\n\

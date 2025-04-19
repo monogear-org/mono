@@ -38,11 +38,11 @@ last_push = ""
 def index():
     return "Python server running alongside Apache Git server. Last push: " + str(last_push)
 
-@app.route("/cicd/<string:repo_name>/<string:commit_hash>", methods=["POST"])
-def handle_cicd(repo_name, commit_hash):
+@app.route("/cicd/<string:repo_name>/<string:branch>/<string:commit_hash>", methods=["POST"])
+def handle_cicd(repo_name, branch, commit_hash):
     global last_push
-    last_push = [repo_name, commit_hash]
-    return f"Received push for {repo_name} at {commit_hash}"
+    last_push = [repo_name, branch, commit_hash]
+    return f"Received push for {repo_name} on branch {branch} at {commit_hash}"
 
 @app.route("/access", methods=["POST"])
 def set_access():
