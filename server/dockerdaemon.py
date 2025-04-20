@@ -6,6 +6,7 @@ from db import (
     get_user_password, set_user_password, get_repo_access, add_repo_access, remove_repo_access,
     remove_user_if_no_access, get_all_repo_access, get_all_users, get_configured, set_configured, set_value, get_value
 )
+import time
 
 app = Flask(__name__)
 
@@ -57,12 +58,21 @@ def check_credentials():
     args=dict(request.args)
     return json.dumps(check_auth(args["username"], args["password"]))
 
-@app.route("/set_data", methods = ["POST"])
+@app.route("/set_user_data", methods = ["POST"])
 @require_auth()
-def set_data():
+def set_user_data():
     args = request.json
+    username = request.authorization.username
+    current_data = get_value("user_"+username)
+    if current_data in [False, None]:
+        current_data = {
+            "username": username,
+            "name": username,
+            "profileImage": None
+        }
     for x in args:
-        set_value(x, args[x])
+        current_data[x] = args[x]
+    set_value("user_"+username, current_data)
     return json.dumps(True)
 
 @app.route("/cicd/<string:repo_name>/<string:branch>/<string:commit_hash>", methods=["POST"])
@@ -106,6 +116,13 @@ def handle_cicd(repo_name, branch, commit_hash):
             "lines_removed": removed
         }
     }), mimetype="application/json")
+    repo_name = repo_name+".git"
+    set_repo_data(repo_name, {
+        "name": repo_name,
+        "description": get_repo_data(repo_name)["description"],
+        "latestBranch": branch,
+        "lastUpdated": time.time()
+    })
     return resp
 
 @app.route("/access", methods=["POST"])
@@ -274,13 +291,13 @@ def repo_commits(repo, branch):
     repo_path = os.path.join(base, repo)
     if not os.path.isdir(repo_path):
         return json.dumps({"status": "ok", "data": []})
-    p = subprocess.run(["git", "--git-dir", repo_path, "log", branch, "--pretty=format:%H|%an|%ad", "--date=iso"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.run(["git", "--git-dir", repo_path, "log", branch, "--pretty=format:%H|%an|%ad|%s", "--date=iso"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     lines = p.stdout.decode().splitlines()
     commits = []
     for line in lines:
-        parts = line.split("|", 2)
-        if len(parts) == 3:
-            commits.append({"hash": parts[0], "author": parts[1], "date": parts[2]})
+        parts = line.split("|", 3)
+        if len(parts) == 4:
+            commits.append({"hash": parts[0], "author": parts[1], "date": parts[2], "message": parts[3]})
     resp = Response(json.dumps({"status": "ok", "data": commits}), mimetype="application/json")
     return resp
 
@@ -305,6 +322,11 @@ def create_repo(name):
     resp = Response(json.dumps({"status": "ok", "created": True, "message": f"Repository '{name}' created"}), mimetype="application/json")
     return resp
 
+@app.route("/set_repo_settings")
+@require_auth(admin_only=True)
+def set_repo_route_data():
+    set_repo_data(request.json)
+
 @app.route("/configured", methods=["GET"])
 def configured_get_route():
     resp = Response(json.dumps({"configured": get_configured()}), mimetype="application/json")
@@ -319,6 +341,37 @@ def configured_post_route():
     set_configured()
     resp = Response(json.dumps({"status": "ok", "configured": True, "message": "Server marked as configured"}), mimetype="application/json")
     return resp
+
+def get_repo_data(name):
+    default = {
+        "name": name,
+        "description": "no description provided",
+        "latestBranch": "master",
+        "lastUpdated": 0
+    }
+    
+    value = get_value("description_"+name)
+    
+    if value in [False, None]:
+        value = default
+    
+    return value
+
+def set_repo_data(name, data):
+    set_value("description_"+name, data)
+
+@app.route("/repos_data")
+@require_auth()
+def projects_data_route():
+    base = "/var/www/git"
+    try:
+        repos = [x for x in os.listdir(base) if x.endswith(".git") and os.path.isdir(os.path.join(base, x))]
+    except:
+        repos = []
+    
+    data = [get_repo_data(x) for x in repos]
+    
+    return data
 
 regenerate_htpasswd()
 regenerate_apache_conf()

@@ -49,7 +49,7 @@ export default function OnboardingPage() {
     const handleSourceInfoSubmit = async (data) => {
         setSourceInfo(data)
 
-        await fetch(server_url+"set_data", {
+        await fetch(server_url+"set_user_data", {
             method: "POST",
             headers: getHeaders(),
             body: JSON.stringify({
