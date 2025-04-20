@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { getHeaders } from "@/lib/fetchHeaders"
 import { AnimatePresence, motion } from "framer-motion"
 
 import PersonalInfoOnboarding from "@/components/auth/PersonalInfoOnboarding"
@@ -9,6 +10,15 @@ import RoleInfoOnboarding from "@/components/auth/RoleInfoOnboarding"
 import SourceInfoOnboarding from "@/components/auth/SourceInfoOnboarding"
 
 export default function OnboardingPage() {
+    var server_url = ""
+    try {
+        eval("window")
+        server_url = localStorage.getItem("currentServer")
+        if (server_url == null) {
+            window.location = "/auth"
+            return
+        }
+    } catch {}
 
     const router = useRouter()
     const [currentStep, setCurrentStep] = useState(1)
@@ -36,13 +46,25 @@ export default function OnboardingPage() {
         setCurrentStep(3)
     }
 
-    const handleSourceInfoSubmit = (data) => {
+    const handleSourceInfoSubmit = async (data) => {
         setSourceInfo(data)
 
-        setTimeout(() => {
-            // will call API here
-            router.push("/dashboard")
-        }, 1500)
+        await fetch(server_url+"set_data", {
+            method: "POST",
+            headers: getHeaders(),
+            body: JSON.stringify({
+                "name": personalInfo.name,
+                "profileImage": personalInfo.profileImage
+            })
+        })
+
+        await fetch(server_url+"configured", {
+            method: "POST",
+            headers: getHeaders(),
+            body: JSON.stringify({})
+        })
+
+        router.push("/dashboard")
     }
 
     return (

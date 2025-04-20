@@ -9,17 +9,14 @@ import { Label } from "@/components/ui/label"
 import logo from "@/public/logo.png"
 
 export default function SignIn({ onAuthStateChange, server_url, setServer_url }) {
-    const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
 
     const handleSubmit = async (e) => {
         e.preventDefault()
         setIsLoading(true)
 
-        setTimeout(() => {
-            setIsLoading(false)
-            onAuthStateChange("signin")
-        }, 1500)
+        setIsLoading(false)
+        onAuthStateChange("signin")
     }
 
     return (

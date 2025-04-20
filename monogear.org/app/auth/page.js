@@ -17,7 +17,7 @@ export default function Home() {
                 <AnimatePresence mode="wait">
                     {authState === "serverurl" && <ServerURL key="serverurl" onAuthStateChange={setAuthState} server_url={server_url} setServer_url={setServer_url} />}
 
-                    {authState === "signin" && <SignIn key="signin" setUserData={setUserData} />}
+                    {authState === "signin" && <SignIn key="signin" setUserData={setUserData} serverURL={server_url} />}
                 </AnimatePresence>
             </div>
         </div>

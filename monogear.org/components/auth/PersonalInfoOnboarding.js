@@ -25,11 +25,8 @@ export default function PersonalInfoOnboarding({ initialData, onSubmit }) {
         e.preventDefault()
         setIsLoading(true)
 
-        setTimeout(() => {
-            // will call API here
-            setIsLoading(false)
-            onSubmit(formData)
-        }, 800)
+        setIsLoading(false)
+        onSubmit(formData)
     }
 
     const handleImageUploadClick = () => {

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import logo from "@/public/logo.png"
 
-export default function SignIn({ setUserData }) {
+export default function SignIn({ setUserData, serverURL }) {
     const router = useRouter()
     const [formData, setFormData] = useState({
         username: "",
@@ -26,10 +26,21 @@ export default function SignIn({ setUserData }) {
         setIsLoading(true)
         setUserData(formData)
 
-        setTimeout(() => {
+        var rightCredentials = (await (await fetch(serverURL+"check_credentials"+"?username="+encodeURIComponent(formData.username)+"&password="+encodeURIComponent(formData.password))).json())
+
+        if (!rightCredentials) {
             setIsLoading(false)
+            return
+        } else {
+            localStorage.setItem(serverURL, JSON.stringify({"username": formData.username, "password": formData.password}))
+            localStorage.setItem("currentServer", serverURL)
+        }
+
+        if (!(await (await fetch(serverURL+"configured")).json()).configured) {
             router.push("/onboarding")
-        }, 1500)
+        } else {
+            router.push("/dashboard")
+        }
     }
 
     return (

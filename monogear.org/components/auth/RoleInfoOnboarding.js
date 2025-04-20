@@ -34,11 +34,8 @@ export default function RoleInfoOnboarding({ initialData, onSubmit, onBack }) {
         e.preventDefault()
         setIsLoading(true)
 
-        // Simulate API call
-        setTimeout(() => {
-            setIsLoading(false)
-            onSubmit(formData)
-        }, 800)
+        setIsLoading(false)
+        onSubmit(formData)
     }
 
     return (

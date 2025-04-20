@@ -59,10 +59,8 @@ export default function SourceInfoOnboarding({ initialData, onSubmit, onBack }) 
         setIsLoading(true)
 
         // Simulate API call
-        setTimeout(() => {
-            setIsLoading(false)
-            onSubmit(formData)
-        }, 800)
+        setIsLoading(false)
+        onSubmit(formData)
     }
 
     const toggleInterest = (value) => {
