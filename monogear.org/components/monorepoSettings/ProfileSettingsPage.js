@@ -9,6 +9,13 @@ import { Upload, Github, Twitter, Linkedin, MapPin } from "lucide-react"
 import { useState } from "react"
 
 export default function ProfileSettingsPage() {
+    var bio=""
+    
+    try {
+        console.log(eval("window").localStorage.getItem("bio"))
+        bio = eval("window").localStorage.getItem("bio")
+    } catch {}
+    var details = JSON.parse(localStorage.getItem(localStorage.getItem("currentServer")))
     const [emoji, setEmoji] = useState("👨‍💻")
     const commonEmojis = ["👨‍💻", "👩‍💻", "🚀", "💻", "⚙️", "🔧", "🛠️", "📊", "🧪", "🔍", "🧠", "🤖"]
 
@@ -34,21 +41,12 @@ export default function ProfileSettingsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-2">
                             <label className="text-sm font-medium text-gray-400">First Name</label>
-                            <Input defaultValue="John" className="bg-[#0A0A0F] border-[#1E1E2A] focus-visible:ring-[#3B82F6]" />
+                            <Input defaultValue={details.username} className="bg-[#0A0A0F] border-[#1E1E2A] focus-visible:ring-[#3B82F6]" />
                         </div>
                         <div className="flex flex-col gap-2">
                             <label className="text-sm font-medium text-gray-400">Last Name</label>
-                            <Input defaultValue="Doe" className="bg-[#0A0A0F] border-[#1E1E2A] focus-visible:ring-[#3B82F6]" />
+                            <Input defaultValue={details.username} className="bg-[#0A0A0F] border-[#1E1E2A] focus-visible:ring-[#3B82F6]" />
                         </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium text-gray-400">Email</label>
-                        <Input
-                            type="email"
-                            defaultValue="john.doe@example.com"
-                            className="bg-[#0A0A0F] border-[#1E1E2A] focus-visible:ring-[#3B82F6]"
-                        />
                     </div>
 
                     <div className="flex flex-col gap-2">
@@ -58,7 +56,7 @@ export default function ProfileSettingsPage() {
                                 @
                             </span>
                             <Input
-                                defaultValue="johndoe"
+                                defaultValue={details.username}
                                 className="rounded-l-none bg-[#0A0A0F] border-[#1E1E2A] focus-visible:ring-[#3B82F6]"
                             />
                         </div>
@@ -67,7 +65,10 @@ export default function ProfileSettingsPage() {
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-medium text-gray-400">Bio</label>
                         <Textarea
-                            defaultValue="Senior Developer at Monogear. Passionate about DevOps, automation, and building scalable systems."
+                            defaultValue={bio ? bio : "hi"}
+                            onInput={(x)=>{
+                                window.localStorage.setItem("bio", x.target.value)
+                            }}
                             className="bg-[#0A0A0F] border-[#1E1E2A] focus-visible:ring-[#3B82F6]"
                         />
                     </div>
@@ -115,7 +116,7 @@ export default function ProfileSettingsPage() {
                                     <Github className="h-4 w-4" />
                                 </span>
                                 <Input
-                                    defaultValue="johndoe"
+                                    defaultValue={details.username}
                                     className="rounded-l-none bg-[#0A0A0F] border-[#1E1E2A] focus-visible:ring-[#3B82F6]"
                                 />
                             </div>
@@ -128,7 +129,7 @@ export default function ProfileSettingsPage() {
                                     <Twitter className="h-4 w-4" />
                                 </span>
                                 <Input
-                                    defaultValue="johndoe"
+                                    defaultValue={details.username}
                                     className="rounded-l-none bg-[#0A0A0F] border-[#1E1E2A] focus-visible:ring-[#3B82F6]"
                                 />
                             </div>
@@ -141,7 +142,7 @@ export default function ProfileSettingsPage() {
                                     <Linkedin className="h-4 w-4" />
                                 </span>
                                 <Input
-                                    defaultValue="john-doe"
+                                    defaultValue={details.username}
                                     className="rounded-l-none bg-[#0A0A0F] border-[#1E1E2A] focus-visible:ring-[#3B82F6]"
                                 />
                             </div>

@@ -12,9 +12,19 @@ import ProfileSettingsPage from "../../components/monorepoSettings/ProfileSettin
 import SecuritySettingsPage from "../../components/monorepoSettings/SecuritySettingsPage";
 import { useState } from "react"
 import { cn } from "../../lib/utils";
+import { getHeaders } from "../../lib/fetchHeaders"
 
 export default function Settings() {
-
+    var server_url = ""
+    try {
+        eval("window")
+        server_url = localStorage.getItem("currentServer")
+        if (server_url == null) {
+            window.location = "/auth"
+            return
+        }
+    } catch { }
+    var details = JSON.parse(localStorage.getItem(localStorage.getItem("currentServer")))
     const [pageState, setPageState] = useState("profile")
 
     return (
