@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 
-import { cn } from "@/lib/utils"
+import { cn } from "../lib/utils"
 import {
     NavigationMenu,
     NavigationMenuContent,
@@ -12,11 +12,11 @@ import {
     NavigationMenuList,
     NavigationMenuTrigger,
     navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu"
+} from "../components/ui/navigation-menu"
 
-import { InteractiveHoverButton } from '@/components/magicui/interactive-hover-button';
+import { InteractiveHoverButton } from '../components/magicui/interactive-hover-button';
 
-import logo from "@/public/logo.png"
+import logo from "../public/logo.png"
 
 const components = [
     {
@@ -61,7 +61,7 @@ export default function Navbar() {
         <div className="w-screen px-4 fixed top-5 z-[50]">
             <div className="border shadow-xl shadow-black/5 border-white/[0.08] bg-black/70 backdrop-blur-sm backdrop-saturate-150 rounded-lg py-2 px-2 flex flex-col md:flex-row items-center justify-center md:justify-between gap-6 lg:gap-1 min-w-600px w-[75vw] mx-auto">
                 <div className='flex gap-2 w-full items-center'>
-                    <img src={logo.src} alt="NeuroLayer" className="relative z-[2] h-10" draggable="false" />
+                    <img src={logo.src} alt="monogear" className="relative z-[2] h-10" draggable="false" />
                     <p className='text-lg lato font-semibold'>monogear</p>
                 </div>
 

@@ -2,12 +2,12 @@
 
 import { useState, useRef } from "react"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
+import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
 import { Camera } from "lucide-react"
-import logo from "@/public/logo.png"
+import logo from "../../public/logo.png"
 
 export default function PersonalInfoOnboarding({ initialData, onSubmit }) {
     const [formData, setFormData] = useState(initialData)
@@ -65,7 +65,7 @@ export default function PersonalInfoOnboarding({ initialData, onSubmit }) {
         >
             <div className="mb-6 flex flex-col items-center space-y-2 text-center">
                 <div className="flex items-center gap-2 mb-2">
-                    <img src={logo.src} alt="NeuroLayer" className="relative z-[2] h-8" draggable="false" />
+                    <img src={logo.src} alt="monogear" className="relative z-[2] h-8" draggable="false" />
                     <p className='text-lg lato font-semibold'>monogear</p>
                 </div>
                 <h1 className="text-2xl font-semibold tracking-tight">Tell us about yourself</h1>

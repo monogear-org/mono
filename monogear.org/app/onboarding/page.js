@@ -2,12 +2,12 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { getHeaders } from "@/lib/fetchHeaders"
+import { getHeaders } from "../../lib/fetchHeaders"
 import { AnimatePresence, motion } from "framer-motion"
 
-import PersonalInfoOnboarding from "@/components/auth/PersonalInfoOnboarding"
-import RoleInfoOnboarding from "@/components/auth/RoleInfoOnboarding"
-import SourceInfoOnboarding from "@/components/auth/SourceInfoOnboarding"
+import PersonalInfoOnboarding from "../../components/auth/PersonalInfoOnboarding"
+import RoleInfoOnboarding from "../../components/auth/RoleInfoOnboarding"
+import SourceInfoOnboarding from "../../components/auth/SourceInfoOnboarding"
 
 export default function OnboardingPage() {
     var server_url = ""
@@ -18,7 +18,7 @@ export default function OnboardingPage() {
             window.location = "/auth"
             return
         }
-    } catch {}
+    } catch { }
 
     const router = useRouter()
     const [currentStep, setCurrentStep] = useState(1)
@@ -49,7 +49,7 @@ export default function OnboardingPage() {
     const handleSourceInfoSubmit = async (data) => {
         setSourceInfo(data)
 
-        await fetch(server_url+"set_data", {
+        await fetch(server_url + "set_data", {
             method: "POST",
             headers: getHeaders(),
             body: JSON.stringify({
@@ -58,7 +58,7 @@ export default function OnboardingPage() {
             })
         })
 
-        await fetch(server_url+"configured", {
+        await fetch(server_url + "configured", {
             method: "POST",
             headers: getHeaders(),
             body: JSON.stringify({})

@@ -1,12 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import { Button } from '@/components/ui/button';
-import { Sparkles } from '@/components/sparkles';
-import { InteractiveHoverButton } from '@/components/magicui/interactive-hover-button';
-import { cn } from "@/lib/utils";
-import { AnimatedShinyText } from "@/components/magicui/animated-shiny-text";
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import { Button } from '../components/ui/button';
+import { Sparkles } from '../components/sparkles';
+import { InteractiveHoverButton } from '../components/magicui/interactive-hover-button';
+import { cn } from "../lib/utils";
+import { AnimatedShinyText } from "../components/magicui/animated-shiny-text";
 import { ArrowRightIcon } from "@radix-ui/react-icons";
 import { ArrowRight, Code, DockIcon as Docker, GitBranch, Lock, Settings, Zap, Server, Shield, ChevronRight, Layers, Users, Workflow, Cpu } from "lucide-react"
 

@@ -1,0 +1,227 @@
+"use client"
+
+import { Button } from "../../../../components/ui/button"
+import { BranchSelector } from "../../../../components/dashboard/branch-selector"
+import { GitBranchIcon, CheckIcon, XIcon, ClipboardIcon, ChevronRightIcon } from "lucide-react"
+import Link from "next/link"
+import { useState } from "react"
+import { UserFilter } from "../../../../components/dashboard/user-filter"
+import logo from "../../../../public/logo.png"
+
+export default function CommitsPage({ params }) {
+
+    const project = projects.find((p) => p.id.toString() === params.id) || projects[0]
+    const [selectedBranch, setSelectedBranch] = useState("main")
+    const [selectedUser, setSelectedUser] = useState("All users")
+    const [selectedTime, setSelectedTime] = useState("All time")
+
+    return (
+        <div className="min-h-screen bg-[#0A0A0F] text-white">
+            <header className="border-b border-[#1E1E2A] sticky top-0 z-10 bg-[#0A0A0F]">
+                <div className="container mx-auto px-4">
+                    <div className="flex items-center justify-between h-16">
+                        <div className="flex items-center gap-8">
+                            <Link href="/repo" className="flex items-center gap-2">
+                                <div className='flex gap-2 w-full items-center'>
+                                    <img src={logo.src} alt="monogear" className="relative z-[2] h-10" draggable="false" />
+                                    <p className='text-lg lato font-semibold'>monogear</p>
+                                </div>
+                            </Link>
+
+                            <nav className="hidden md:flex items-center space-x-6">
+                                <Link href="/dashboard" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
+                                    Dashboard
+                                </Link>
+                                <Link href="/repositories" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
+                                    Repositories
+                                </Link>
+                                <Link href="/pipelines" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
+                                    Pipelines
+                                </Link>
+                                <Link href="/deployments" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
+                                    Deployments
+                                </Link>
+                                <Link href="/settings" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
+                                    Settings
+                                </Link>
+                            </nav>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-gray-400 border-[#1E1E2A] hover:bg-[#1E1E2A] hover:text-white"
+                            >
+                                Feedback
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-gray-400 border-[#1E1E2A] hover:bg-[#1E1E2A] hover:text-white"
+                            >
+                                Docs
+                            </Button>
+                            <div className="w-8 h-8 rounded-full bg-[#3273FF] flex items-center justify-center">
+                                <span className="text-sm font-medium">JD</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main className="container mx-auto px-4 py-6">
+                <div className="flex items-center gap-2 mb-6">
+                    <Link href={`/repo/${project.id}`} className="text-gray-400 hover:text-blue-400">
+                        {project.owner}/{project.repo}
+                    </Link>
+                    <ChevronRightIcon className="h-4 w-4 text-gray-400" />
+                    <span className="text-white">Commits</span>
+                </div>
+
+                <h1 className="text-2xl font-bold mb-6">Commits</h1>
+
+                <div className="flex items-center justify-between mb-6">
+                    <BranchSelector branches={project.branches} />
+
+                    <div className="relative">
+                        <UserFilter
+                            onFilterChange={(username) => {
+                                setSelectedUser(username || "All users")
+                                // Filter commits by username if provided
+                            }}
+                        />
+                    </div>
+                </div>
+
+                <div className="border border-[#1E1E2A] rounded-md bg-[#121218] divide-y divide-[#1E1E2A]">
+                    <div className="p-3 text-sm text-gray-400">
+                        <GitBranchIcon className="inline-block h-4 w-4 mr-2" />
+                        Commits on Apr 20, 2025
+                    </div>
+
+                    {project.commits
+                        .filter(
+                            (commit) => selectedUser === "All users" || commit.author.toLowerCase() === selectedUser.toLowerCase(),
+                        )
+                        .map((commit) => (
+                            <div key={commit.id} className="p-4 hover:bg-[#1A1A24]">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <Link
+                                            href={`/repo/${project.id}/commits/${commit.id}`}
+                                            className="text-white hover:text-blue-400 font-medium block mb-1"
+                                        >
+                                            {commit.message}
+                                        </Link>
+                                        <div className="flex items-center text-sm text-gray-400">
+                                            <span className="mr-2">{commit.author}</span>
+                                            <span>committed {commit.date}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#1E1E2A]"
+                                            title="Copy commit ID"
+                                        >
+                                            <ClipboardIcon className="h-4 w-4" />
+                                        </Button>
+                                        <div className="flex items-center gap-1">
+                                            {commit.status === "success" ? (
+                                                <CheckIcon className="h-4 w-4 text-green-500" />
+                                            ) : commit.status === "failed" ? (
+                                                <XIcon className="h-4 w-4 text-red-500" />
+                                            ) : (
+                                                <div className="h-4 w-4 rounded-full border-2 border-gray-400 border-t-transparent animate-spin" />
+                                            )}
+                                            <span className="text-sm font-mono text-gray-400">{commit.id}</span>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#1E1E2A]"
+                                            title="View commit"
+                                        >
+                                            <ChevronRightIcon className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                </div>
+            </main>
+        </div>
+    )
+}
+
+// Sample project data
+const projects = [
+    {
+        id: 1,
+        name: "API Service",
+        owner: "monogear",
+        repo: "api-service",
+        description: "Core API service for the Monogear platform",
+        branch: "main",
+        lastUpdated: "Updated 2h ago",
+        icon: "A",
+        branches: [
+            { name: "main", isDefault: true },
+            { name: "develop", isDefault: false },
+            { name: "feature/auth", isDefault: false },
+        ],
+        commits: [
+            {
+                id: "f74ad8a",
+                message: "added admin only access to apache reload",
+                author: "aludayalu",
+                date: "1 hour ago",
+                status: "failed",
+            },
+            {
+                id: "c8fee6f",
+                message: "adding auth flow and onboarding",
+                author: "Atharv777",
+                date: "1 hour ago",
+                status: "failed",
+            },
+            {
+                id: "f819106",
+                message: "moved all state to the db added auth to endpoints with a default user admin",
+                author: "aludayalu",
+                date: "1 hour ago",
+                status: "success",
+            },
+            {
+                id: "4d0ca73",
+                message: "monogear published to npm",
+                author: "aludayalu",
+                date: "11 hours ago",
+                status: "success",
+            },
+            {
+                id: "14d5b7b",
+                message: "fixed the setup command",
+                author: "aludayalu",
+                date: "11 hours ago",
+                status: "success",
+            },
+            {
+                id: "14ab76f",
+                message: "basic cli done",
+                author: "aludayalu",
+                date: "11 hours ago",
+                status: "success",
+            },
+            {
+                id: "9b8ceff",
+                message: "hi",
+                author: "aludayalu",
+                date: "11 hours ago",
+                status: "pending",
+            },
+        ],
+    },
+]

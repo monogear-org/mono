@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import logo from "@/public/logo.png"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
+import logo from "../../public/logo.png"
+import { Button } from "../../components/ui/button"
+import { Label } from "../../components/ui/label"
 import { ArrowLeft, Check } from "lucide-react"
 
 
@@ -83,7 +83,7 @@ export default function SourceInfoOnboarding({ initialData, onSubmit, onBack }) 
         >
             <div className="mb-6 flex flex-col items-center space-y-2 text-center">
                 <div className="flex items-center gap-2 mb-2">
-                    <img src={logo.src} alt="NeuroLayer" className="relative z-[2] h-8" draggable="false" />
+                    <img src={logo.src} alt="monogear" className="relative z-[2] h-8" draggable="false" />
                     <p className='text-lg lato font-semibold'>monogear</p>
                 </div>
                 <h1 className="text-2xl font-semibold tracking-tight">Almost there!</h1>

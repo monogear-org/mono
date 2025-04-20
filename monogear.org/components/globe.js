@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useRef } from 'react';
 import createGlobe from 'cobe';
-import { cn } from '@/lib/utils';
+import { cn } from '../../lib/utils';
 
 const Earth = ({
     className,

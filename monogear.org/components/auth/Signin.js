@@ -3,10 +3,10 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import logo from "@/public/logo.png"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
+import logo from "../../public/logo.png"
 
 export default function SignIn({ setUserData, serverURL }) {
     const router = useRouter()
@@ -26,17 +26,17 @@ export default function SignIn({ setUserData, serverURL }) {
         setIsLoading(true)
         setUserData(formData)
 
-        var rightCredentials = (await (await fetch(serverURL+"check_credentials"+"?username="+encodeURIComponent(formData.username)+"&password="+encodeURIComponent(formData.password))).json())
+        var rightCredentials = (await (await fetch(serverURL + "check_credentials" + "?username=" + encodeURIComponent(formData.username) + "&password=" + encodeURIComponent(formData.password))).json())
 
         if (!rightCredentials) {
             setIsLoading(false)
             return
         } else {
-            localStorage.setItem(serverURL, JSON.stringify({"username": formData.username, "password": formData.password}))
+            localStorage.setItem(serverURL, JSON.stringify({ "username": formData.username, "password": formData.password }))
             localStorage.setItem("currentServer", serverURL)
         }
 
-        if (!(await (await fetch(serverURL+"configured")).json()).configured) {
+        if (!(await (await fetch(serverURL + "configured")).json()).configured) {
             router.push("/onboarding")
         } else {
             router.push("/dashboard")
@@ -53,7 +53,7 @@ export default function SignIn({ setUserData, serverURL }) {
         >
             <div className="mb-6 flex flex-col items-center space-y-2 text-center">
                 <div className="flex items-center gap-2 mb-2">
-                    <img src={logo.src} alt="NeuroLayer" className="relative z-[2] h-8" draggable="false" />
+                    <img src={logo.src} alt="monogear" className="relative z-[2] h-8" draggable="false" />
                     <p className='text-lg lato font-semibold'>monogear</p>
                 </div>
                 <h1 className="text-2xl font-semibold tracking-tight">Sign in to monogear</h1>

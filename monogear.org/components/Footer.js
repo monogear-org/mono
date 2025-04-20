@@ -1,5 +1,5 @@
 import React from 'react'
-import logo from "@/public/logo.png"
+import logo from "../public/logo.png"
 
 export default function Footer() {
     return (
@@ -8,7 +8,7 @@ export default function Footer() {
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
                     <div className="col-span-2">
                         <div className="flex items-center gap-2 mb-4">
-                            <img src={logo.src} alt="NeuroLayer" className="relative z-[2] h-10" draggable="false" />
+                            <img src={logo.src} alt="monogear" className="relative z-[2] h-10" draggable="false" />
                             <p className='text-lg lato font-semibold'>monogear</p>
                         </div>
                         <p className="text-zinc-400 mb-4 max-w-xs">
