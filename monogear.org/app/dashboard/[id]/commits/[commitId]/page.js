@@ -246,7 +246,10 @@ export default function CommitConversationPage({ params }) {
                                             <Button className="bg-[#3273FF] hover:bg-[#3273FF]/70 text-white" onClick={() => {
                                                 fetch(server_url+"comment?commit="+params.commitId+"&message="+encodeURIComponent(comment), {headers: getHeaders()}).then(async (x) => {
                                                     await x.json()
-                                                    window.location = window.location.href
+                                                    fetch(server_url + "get_comments?commit="+params.commitId, {headers: getHeaders()}).then(async (x) => {
+                                                        setComments(await x.json())
+                                                        setComment("")
+                                                    })
                                                 })
                                             }}>Comment</Button>
                                         </div>

@@ -359,7 +359,7 @@ def repo_commits(repo, branch):
             "message": message,
             "author": author,
             "date": date_str,
-            "status": "failed"
+            "status": "pending"
         })
 
     return Response(json.dumps({"status": "ok", "data": commits}),
