@@ -12,12 +12,14 @@ const program = new Command();
 const AUTH_FILE = path.join(process.cwd(), ".monogear_auth.json");
 
 function saveAuth(username, password) {
-  fs.writeFileSync(AUTH_FILE, JSON.stringify({ username, password }, null, 2));
+  fs.writeFileSync(AUTH_FILE, JSON.stringify({ username: username, password: password }));
 }
 
 function loadAuth() {
-  if (!fs.existsSync(AUTH_FILE)) return null;
-  return JSON.parse(fs.readFileSync(AUTH_FILE, "utf-8"));
+  if (!fs.existsSync(AUTH_FILE)) {
+    return null;
+  }
+  return JSON.parse(fs.readFileSync(AUTH_FILE).toString());
 }
 
 program
@@ -28,217 +30,266 @@ program
 program
   .command("docker-setup")
   .description("Install and setup Docker CLI, then guide user to run python3 dockerdaemon.py")
-  .action(async () => {
+  .action(() => {
+    let installed = false;
     try {
       execSync("docker --version", { stdio: "ignore" });
-      console.log(chalk.green("Docker is already installed!"));
-    } catch {
-      console.log(chalk.yellow("Docker is not installed. Please install Docker from https://www.docker.com/products/docker-desktop and ensure it is in your PATH."));
+      installed = true;
+    } catch (e) {}
+    if (installed) {
+      console.log(chalk.bgGreenBright.bold(' DOCKER INSTALLED! '));
+    } else {
+      console.log(chalk.bgRedBright.bold(' DOCKER NOT FOUND! '));
+      console.log(chalk.yellowBright.underline("Go to https://www.docker.com/products/docker-desktop and install it!"));
       return;
     }
-    console.log(chalk.cyan("To start the Docker server, run: python3 server/dockerdaemon.py"));
+    console.log(chalk.cyanBright.bold("To start the Docker server, run: " + chalk.underline("python3 server/dockerdaemon.py")));
   });
 
 program
   .command("authenticate")
   .description("Authenticate user (store username and password in local JSON)")
-  .action(async () => {
-    const answers = await inquirer.prompt([
+  .action(() => {
+    inquirer.prompt([
       { type: "input", name: "username", message: "Enter your username:" },
-      { type: "password", name: "password", message: "Enter your password:", mask: "*" }
-    ]);
-    saveAuth(answers.username, answers.password);
-    console.log(chalk.green("Authentication details saved."));
+      { type: "password", name: "password", message: "Enter your password:", mask: "😀" }
+    ]).then(function(answers) {
+      saveAuth(answers.username, answers.password);
+      console.log(chalk.bgGreen.black("Authentication successful for user:") + " " + chalk.bgBlue.white(answers.username))
+    });
   });
 
-const sync = program.command("sync").description("Sync operations (local/remote)");
+var sync = program.command("sync").description("Sync operations (local/remote)");
 
 sync
   .command("local")
   .description("Clone a repository using the configured user and password")
-  .action(async () => {
-    let auth = loadAuth();
+  .action(() => {
+    var auth = loadAuth();
     if (!auth) {
-      console.log(chalk.red("No authentication found. Please run 'monogear authenticate' first."));
+      console.log(chalk.bgRed.white("Authentication required. Please run 'monogear authenticate' first."))
       return;
     }
-    const { repo } = await inquirer.prompt([
+    inquirer.prompt([
       { type: "input", name: "repo", message: "Enter repository HTTPS URL to clone:" }
-    ]);
-    const repoUrl = new URL(repo);
-    repoUrl.username = encodeURIComponent(auth.username);
-    repoUrl.password = encodeURIComponent(auth.password);
-    const folder = path.basename(repoUrl.pathname, ".git");
-    try {
-      await simpleGit().clone(repoUrl.toString(), folder);
-      console.log(chalk.green(`Repository cloned to ./${folder}`));
-    } catch (err) {
-      console.log(chalk.red("Failed to clone repository:"), err.message);
-    }
+    ]).then(function(ans) {
+      var repo = ans.repo;
+      var repoUrl = new URL(repo);
+      repoUrl.username = encodeURIComponent(auth.username);
+      repoUrl.password = encodeURIComponent(auth.password);
+      var folder = path.basename(repoUrl.pathname, ".git");
+      simpleGit().clone(repoUrl.toString(), folder)
+        .then(function() {
+          console.log(chalk.bgGreen.black("Repository cloned to:") + " " + chalk.white("./" + folder))
+        })
+        .catch(function(err) {
+          console.log(chalk.bgRed.white("Clone failed:") + " " + chalk.white(err.message))
+        });
+    });
   });
 
 sync
   .command("remote")
   .description("Push local changes to remote using the configured user and password")
   .option("--branch <branch>", "Branch to push to")
-  .action(async (opts) => {
-    let auth = loadAuth();
-    if (!auth) {
-      console.log(chalk.red("No authentication found. Please run 'monogear authenticate' first."));
-      return;
-    }
-    const { repo } = await inquirer.prompt([
-      { type: "input", name: "repo", message: "Enter repository HTTPS URL to push to:" }
-    ]);
-    const { message } = await inquirer.prompt([
-      { type: "input", name: "message", message: "Enter commit message:", default: "monogear sync remote" }
-    ]);
-    const repoUrl = new URL(repo);
-    repoUrl.username = encodeURIComponent(auth.username);
-    repoUrl.password = encodeURIComponent(auth.password);
-    try {
-      const git = simpleGit();
-      await git.add(".");
-      await git.commit(message);
-      if (opts.branch) {
-        await git.push([repoUrl.toString(), `HEAD:${opts.branch}`]);
-      } else {
-        await git.push([repoUrl.toString()]);
-      }
-      console.log(chalk.green("Changes pushed to remote repository."));
-    } catch (err) {
-      console.log(chalk.red("Failed to push to remote repository:"), err.message);
-    }
+  .action((opts) => {
+    var auth = loadAuth()
+if (!auth) {
+  console.log(chalk.bgRed("Authentication required. Please run 'monogear authenticate' first."))
+  return
+}
+inquirer.prompt([
+  { type: "input", name: "repo", message: "Enter repository HTTPS URL to push to:" }
+]).then(function(ans1) {
+  inquirer.prompt([
+    { type: "input", name: "message", message: "Enter commit message:", default: "monogear sync remote" }
+  ]).then(function(ans2) {
+    var repoUrl = new URL(ans1.repo)
+    repoUrl.username = encodeURIComponent(auth.username)
+    repoUrl.password = encodeURIComponent(auth.password)
+    var git = simpleGit()
+    git.add(".")
+      .then(function() {
+        return git.commit(ans2.message)
+      })
+      .then(function() {
+        if (opts.branch) {
+          return git.push([repoUrl.toString(), "HEAD:" + opts.branch])
+        } else {
+          return git.push([repoUrl.toString()])
+        }
+      })
+      .then(function() {
+        console.log(chalk.bgGreen.black("Push to remote repository completed."))
+      })
+      .catch(function(err) {
+        console.log(chalk.bgRed.white("Push failed:") + " " + chalk.white(err.message))
+      })
+  })
+})
   });
 
 program
   .command("make-repo")
-  .description("Create a new repository via the backend API")
+  .description("Create a new repo (beginner style)")
   .action(async () => {
-    const auth = loadAuth();
-    if (!auth) {
-      console.log(chalk.red("No authentication found. Please run 'monogear authenticate' first."));
-      return;
-    }
-    const { name, description } = await inquirer.prompt([
-      { type: "input", name: "name", message: "Repository name:" },
-      { type: "input", name: "description", message: "Repository description:" }
+    const ans = await inquirer.prompt([
+      { type: "input", name: "name", message: "Repo name?" }
     ]);
-    try {
-      const response = await axios.post("http://localhost:8000/api/repos", {
-        name,
-        description,
-        username: auth.username,
-        password: auth.password
-      });
-      if (response.data && response.data.success) {
-        console.log(chalk.green(`Repository '${name}' created successfully!`));
-      } else {
-        console.log(chalk.red("Failed to create repository."));
-      }
-    } catch (err) {
-      console.log(chalk.red("Error creating repository:"), err.message);
+    const name = ans.name;
+    if (!name) {
+      console.log(chalk.bgYellow.black('Please enter a repository name.'))
+      return
     }
+    if (name.indexOf("/") !== -1 || name.endsWith(".git")) {
+      console.log(chalk.bgRed.white('Invalid repository name.'))
+      return
+    }
+    axios.get("http://localhost:8000/repo/new/" + name)
+      .then(function(res) {
+        if (res.data.created) {
+          console.log(chalk.bgGreen.black('Repository created:') + " " + chalk.white(name))
+        } else if (res.data.error) {
+          console.log(chalk.bgRed.white('Error:') + " " + chalk.white(res.data.error))
+        } else {
+          console.log(chalk.gray('Unknown error occurred while creating repository.'))
+        }
+      })
+      .catch(function(e) {
+        console.log(chalk.bgRed.white('Error:') + " " + chalk.white(e.message))
+      })
   });
 
 program
   .command("history")
-  .description("View commit history of the current repository")
-  .action(async () => {
-    try {
-      const git = simpleGit();
-      const log = await git.log();
-      log.all.forEach(commit => {
-        console.log(`${chalk.cyan(commit.hash.slice(0,7))} ${chalk.yellow(commit.date)} ${chalk.green(commit.author_name)}: ${commit.message}`);
-      });
-    } catch (err) {
-      console.log(chalk.red("Failed to get commit history:"), err.message);
-    }
-  });
+  .description("Show git history (beautiful and elegant)")
+  .action(() => {
+    var git = simpleGit()
+    git.log().then(function(log) {
+      var sep = chalk.bgGray(' '.repeat(60))
+      console.log('\n' + sep)
+      console.log(chalk.bold.bgBlack.white('   Git Commit History   ').padEnd(60))
+      console.log(sep)
+      for (var i = 0; i < log.all.length; i++) {
+        var c = log.all[i]
+        var hash = chalk.bgWhite.black.bold(' ' + c.hash.substring(0,7) + ' ')
+        var author = chalk.bgCyan.black(' ' + c.author_name + ' ')
+        var date = chalk.bgBlue.white(' ' + c.date.split('T')[0] + ' ')
+        var msg = chalk.bgBlack.white(' ' + c.message + ' ')
+        console.log('  ' + hash + '  ' + author + '  ' + date)
+        console.log('      ' + msg + '\n')
+      }
+      console.log(sep + '\n')
+    }).catch(function(e) {
+      console.log(chalk.bgRed.white('  Error: ') + chalk.white(e.message))
+    })
+  })
 
 program
   .command("checkout-prev")
-  .description("Checkout a previous commit interactively")
-  .action(async () => {
-    try {
-      const git = simpleGit();
-      const log = await git.log();
-      const { commit } = await inquirer.prompt([
-        {
-          type: "list",
-          name: "commit",
-          message: "Select a commit to checkout:",
-          choices: log.all.map(c => ({ name: `${c.hash.slice(0,7)} - ${c.message}`, value: c.hash }))
-        }
-      ]);
-      await git.checkout(commit);
-      console.log(chalk.green(`Checked out commit ${commit}`));
-    } catch (err) {
-      console.log(chalk.red("Failed to checkout commit:"), err.message);
-    }
-  });
+  .description("Checkout a previous commit interactively (colorful)")
+  .action(() => {
+    var git = simpleGit()
+    git.log().then(function(log) {
+      var choices = []
+      for (var i = 0; i < log.all.length; i++) {
+        var c = log.all[i]
+        var hash = chalk.hex('#FF6F00').bold.underline(c.hash.substring(0,7))
+        var msg = chalk.hex('#FFD700').italic(c.message)
+        var author = chalk.hex('#00BFFF').bold(c.author_name)
+        choices.push({ name: hash + chalk.gray(' | ') + msg + chalk.gray(' by ') + author, value: c.hash })
+      }
+      inquirer.prompt([
+        { type: "list", name: "commit", message: chalk.bgBlackBright.bold("Select a commit to checkout:"), choices: choices }
+      ]).then(function(ans) {
+        git.checkout(ans.commit).then(function() {
+          console.log(
+            chalk.bgGreen.black.bold("\nChecked out commit:") +
+            ' ' + chalk.bgBlackBright.bold(ans.commit.substring(0,7)) +
+            chalk.bgGreen.black.bold(" successfully.\n")
+          )
+        }).catch(function(e) {
+          console.log(chalk.bgRed("Failed: ") + e.message)
+        })
+      })
+    }).catch(function(e) {
+      console.log(chalk.bgRed("Error: ") + e.message)
+    })
+  })
 
-// Suggested command stubs
 program
   .command("status")
-  .description("Show git status in a pretty format")
-  .action(async () => {
-    try {
-      const git = simpleGit();
-      const status = await git.status();
-      console.log(status);
-    } catch (err) {
-      console.log(chalk.red("Failed to get status:"), err.message);
-    }
+  .description("Show git status (beginner style)")
+  .action(() => {
+    let git = simpleGit();
+    git.status().then(function(status) {
+      if (status.files.length === 0) {
+        console.log(chalk.bgGreenBright(" Clean repo! "));
+      } else {
+        for (let i = 0; i < status.files.length; i++) {
+          let f = status.files[i];
+          console.log(chalk.bgRedBright(f.path + " " + f.working_dir + " " + f.index));
+        }
+      }
+    }).catch(function(e) {
+      console.log(chalk.bgRed(" Status error: ") + e.message);
+    });
   });
 
 program
   .command("diff")
   .description("Show a colored diff of unstaged changes")
-  .action(async () => {
-    try {
-      const git = simpleGit();
-      const diff = await git.diff();
-      if (diff) {
-        console.log(chalk.blue(diff));
+  .action(() => {
+    let git = simpleGit();
+    git.diff().then(function(diff) {
+      if (diff && diff.length > 0) {
+        console.log(chalk.bgMagentaBright(diff));
       } else {
-        console.log(chalk.green("No unstaged changes."));
+        console.log(chalk.bgGreenBright(" No unstaged changes! "));
       }
-    } catch (err) {
-      console.log(chalk.red("Failed to show diff:"), err.message);
-    }
+    }).catch(function(e) {
+      console.log(chalk.bgRed(" Diff error: ") + e.message);
+    });
   });
 
 program
   .command("stash")
   .description("Stash current changes and list stashes interactively")
-  .action(async () => {
-    try {
-      const git = simpleGit();
-      const { action } = await inquirer.prompt([
-        { type: "list", name: "action", message: "Stash or view stashes?", choices: ["Create stash", "List stashes", "Apply stash"] }
-      ]);
-      if (action === "Create stash") {
-        await git.stash();
-        console.log(chalk.green("Changes stashed."));
-      } else if (action === "List stashes") {
-        const stashes = await git.stashList();
-        stashes.all.forEach((s, i) => console.log(`${i}: ${s.message}`));
-      } else if (action === "Apply stash") {
-        const stashes = await git.stashList();
-        if (stashes.total === 0) {
-          console.log(chalk.yellow("No stashes to apply."));
-          return;
-        }
-        const { idx } = await inquirer.prompt([
-          { type: "list", name: "idx", message: "Select a stash to apply:", choices: stashes.all.map((s, i) => ({ name: `${i}: ${s.message}`, value: i })) }
-        ]);
-        await git.stash(["apply", `stash@{${idx}}`]);
-        console.log(chalk.green(`Applied stash ${idx}.`));
+  .action(() => {
+    let git = simpleGit();
+    inquirer.prompt([
+      { type: "list", name: "action", message: "Stash or view stashes?", choices: ["Create stash", "List stashes", "Apply stash"] }
+    ]).then(function(ans) {
+      if (ans.action === "Create stash") {
+        git.stash().then(function() {
+          console.log(chalk.bgYellowBright(" Changes stashed! "));
+        });
+      } else if (ans.action === "List stashes") {
+        git.stashList().then(function(stashes) {
+          for (let i = 0; i < stashes.all.length; i++) {
+            console.log(chalk.bgBlueBright(i + ": " + stashes.all[i].message));
+          }
+        });
+      } else if (ans.action === "Apply stash") {
+        git.stashList().then(function(stashes) {
+          if (stashes.total === 0) {
+            console.log(chalk.bgRedBright(" No stashes! "));
+            return;
+          }
+          let choices = [];
+          for (let i = 0; i < stashes.all.length; i++) {
+            choices.push({ name: i + ": " + stashes.all[i].message, value: i });
+          }
+          inquirer.prompt([
+            { type: "list", name: "idx", message: "Pick stash to apply:", choices: choices }
+          ]).then(function(ans2) {
+            git.stash(["apply", "stash@{" + ans2.idx + "}"]).then(function() {
+              console.log(chalk.bgGreenBright(" Applied stash " + ans2.idx + "! "));
+            });
+          });
+        });
       }
-    } catch (err) {
-      console.log(chalk.red("Failed with stash operation:"), err.message);
-    }
+    });
   });
 
 program
