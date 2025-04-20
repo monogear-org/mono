@@ -127,28 +127,30 @@ export default function Dashboard() {
 
 function RepoCard({ repo }) {
     return (
-        <Link href={`/repo/${repo.id}`} className="block">
-            <div className="border border-[#1E1E2A] rounded-lg p-4 bg-[#121218] hover:border-blue-600/50 transition-colors group">
-                <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-md bg-[#1E1E2A] flex items-center justify-center text-blue-500">
-                            {repo.icon}
+        <Link href={`/repo/${repo.id}`} className="block h-full">
+            <div className="h-full border border-[#1E1E2A] rounded-lg p-4 bg-[#121218] hover:border-blue-600/50 transition-colors group flex flex-col gap-4">
+                <div className="flex flex-col gap-4 justify-between">
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-md bg-[#1E1E2A] flex items-center justify-center text-blue-500">
+                                {repo.icon}
+                            </div>
+                            <div>
+                                <h3 className="font-medium text-white group-hover:text-blue-400 transition-colors">{repo.name}</h3>
+                                <p className="text-xs text-gray-400">
+                                    {repo.owner}/{repo.repo}
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="font-medium text-white group-hover:text-blue-400 transition-colors">{repo.name}</h3>
-                            <p className="text-xs text-gray-400">
-                                {repo.owner}/{repo.repo}
-                            </p>
-                        </div>
+                        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-[#1E1E2A]">
+                            <MoreHorizontalIcon className="h-4 w-4" />
+                        </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-[#1E1E2A]">
-                        <MoreHorizontalIcon className="h-4 w-4" />
-                    </Button>
+
+                    <div className="text-xs text-gray-400">{repo.description}</div>
                 </div>
 
-                <div className="text-xs text-gray-400 mb-4">{repo.description}</div>
-
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-xs flex-1">
                     <div className="flex items-center gap-1 text-gray-400">
                         <GitBranchIcon className="h-3 w-3" />
                         <span>{repo.branch}</span>
