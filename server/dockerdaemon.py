@@ -152,6 +152,7 @@ def reload_apache():
         traceback.print_exc()
 
 @app.route("/apache/reload")
+@require_auth(admin_only=True)
 def manual_reload():
     reload_apache()
     return "Apache reloading"
