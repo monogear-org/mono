@@ -69,10 +69,42 @@ def set_data():
 def handle_cicd(repo_name, branch, commit_hash):
     global last_push
     last_push = [repo_name, branch, commit_hash]
+    repo_path = f"/var/www/git/{repo_name}.git"
+
+    author = subprocess.run([
+        "git", "--git-dir", repo_path, "log", "-1", "--pretty=format:%an", branch
+    ], stdout=subprocess.PIPE).stdout.decode().strip()
+
+    message = subprocess.run([
+        "git", "--git-dir", repo_path, "log", "-1", "--pretty=format:%s", branch
+    ], stdout=subprocess.PIPE).stdout.decode().strip()
+
+    date = subprocess.run([
+        "git", "--git-dir", repo_path, "log", "-1", "--pretty=format:%ad", "--date=iso", branch
+    ], stdout=subprocess.PIPE).stdout.decode().strip()
+
+    diffstat = subprocess.run([
+        "git", "--git-dir", repo_path, "show", "--numstat", "--oneline", branch
+    ], stdout=subprocess.PIPE).stdout.decode().splitlines()
+    added, removed = 0, 0
+    for line in diffstat:
+        parts = line.strip().split("\t")
+        if len(parts) == 3 and parts[0].isdigit() and parts[1].isdigit():
+            added += int(parts[0])
+            removed += int(parts[1])
     resp = Response(json.dumps({
         "status": "ok",
         "message": f"Received push for {repo_name} on branch {branch} at {commit_hash}",
-        "data": {"repo": repo_name, "branch": branch, "commit": commit_hash}
+        "data": {
+            "repo": repo_name,
+            "branch": branch,
+            "commit": commit_hash,
+            "author": author,
+            "commit_message": message,
+            "commit_date": date,
+            "lines_added": added,
+            "lines_removed": removed
+        }
     }), mimetype="application/json")
     return resp
 
