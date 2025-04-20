@@ -77,6 +77,7 @@ def set_user_data():
 
 @app.route("/cicd/<string:repo_name>/<string:branch>/<string:commit_hash>", methods=["POST"])
 def handle_cicd(repo_name, branch, commit_hash):
+    username = request.environ.get("HTTP_X_USERNAME")
     global last_push
     last_push = [repo_name, branch, commit_hash]
     repo_path = f"/var/www/git/{repo_name}.git"
@@ -106,6 +107,7 @@ def handle_cicd(repo_name, branch, commit_hash):
         "status": "ok",
         "message": f"Received push for {repo_name} on branch {branch} at {commit_hash}",
         "data": {
+            "username": username,
             "repo": repo_name,
             "branch": branch,
             "commit": commit_hash,

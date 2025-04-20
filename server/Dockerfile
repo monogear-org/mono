@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN a2enmod cgi alias env rewrite auth_basic
 
+# wrapper to capture REMOTE_USER and pass PATH_INFO through
 RUN printf '%s\n' \
   '#!/bin/bash' \
   'export GIT_PROJECT_ROOT=/var/www/git' \
@@ -26,14 +27,15 @@ RUN printf '%s\n' \
 
 RUN mkdir -p /var/www/git && chown -R www-data:www-data /var/www/git
 
+# initialize a bare repo
 RUN cd /var/www/git \
   && git init --bare base.git \
   && chown -R www-data:www-data base.git
 
+# post‑receive hook writes both per-commit zips and the latest-zip per branch
 RUN printf '%s\n' \
   '#!/bin/bash' \
-  'REPO_PATH=$(pwd)' \
-  'REPO_NAME=$(basename "$REPO_PATH" .git)' \
+  'REPO_NAME=$(basename "$(pwd)" .git)' \
   'while read oldrev newrev refname; do' \
   '  BRANCH=${refname#refs/heads/}' \
   '  COMMIT_HASH=$newrev' \
@@ -41,8 +43,7 @@ RUN printf '%s\n' \
   '  WORKDIR=/tmp/${REPO_NAME}-${BRANCH}-${COMMIT_HASH}' \
   '  ZIP_PATH=/tmp/${REPO_NAME}-${BRANCH}-${COMMIT_HASH}.zip' \
   '  LATEST_ZIP=/var/www/git/${REPO_NAME}-${BRANCH}-latest.zip' \
-  '  rm -rf "$WORKDIR"' \
-  '  mkdir -p "$WORKDIR"' \
+  '  rm -rf "$WORKDIR" && mkdir -p "$WORKDIR"' \
   '  git --work-tree="$WORKDIR" checkout "$COMMIT_HASH" -- .' \
   '  cd "$WORKDIR"' \
   '  zip -r "$ZIP_PATH" . > /dev/null' \
@@ -54,22 +55,26 @@ RUN printf '%s\n' \
   && chmod +x /var/www/git/base.git/hooks/post-receive \
   && chown www-data:www-data /var/www/git/base.git/hooks/post-receive
 
+# basic auth user
 RUN htpasswd -cb /etc/apache2/.htpasswd admin admin
 
+# Apache vhost: run our wrapper (with PATH_INFO) as CGI and require auth
 RUN printf '%s\n' \
   '<VirtualHost *:80>' \
-  'ServerName localhost' \
-  'ScriptAlias /git/ /usr/local/bin/git-http-wrapper' \
-  '<Directory "/usr/local/bin">' \
-  'Options +ExecCGI' \
-  'Require all granted' \
-  '</Directory>' \
-  '<Location /git/>' \
-  'AuthType Basic' \
-  'AuthName "Git Access"' \
-  'AuthUserFile /etc/apache2/.htpasswd' \
-  'Require valid-user' \
-  '</Location>' \
+  '    ServerName localhost' \
+  '    ScriptAlias /git/ /usr/local/bin/git-http-wrapper/' \
+  '    <Directory "/usr/local/bin">' \
+  '        Options +ExecCGI' \
+  '        Require all granted' \
+  '        AllowOverride None' \
+  '        AcceptPathInfo On' \
+  '    </Directory>' \
+  '    <Location /git/>' \
+  '        AuthType Basic' \
+  '        AuthName "Git Access"' \
+  '        AuthUserFile /etc/apache2/.htpasswd' \
+  '        Require valid-user' \
+  '    </Location>' \
   '</VirtualHost>' \
   > /etc/apache2/sites-available/git.conf
 
