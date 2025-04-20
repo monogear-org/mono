@@ -5,8 +5,8 @@ const inter = Inter({ subsets: ['latin'] })
 const lato = Lato({ subsets: ['latin'], weight: ["400"], variable: "--font-lato" })
 
 export const metadata = {
-    title: 'MonoGear',
-    description: 'MonoGear',
+    title: 'Monogear',
+    description: 'Monogear is a self-hostable, fully programmable mono-repo platform for end-to-end DevOps.',
 }
 
 export default function RootLayout({ children }) {
