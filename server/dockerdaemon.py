@@ -1,95 +1,111 @@
 import subprocess, json
-from flask import Flask, request
+from flask import Flask, request, Response
 import os, tempfile
+from functools import wraps
+from db import (
+    get_user_password, set_user_password, get_repo_access, add_repo_access, remove_repo_access,
+    remove_user_if_no_access, get_all_repo_access, get_all_users, get_configured, set_configured
+)
 
 app = Flask(__name__)
 
-REPO_ACCESS_PATH = "/app/repo_access.json"
-USER_PASSWORDS_PATH = "/app/user_passwords.json"
+def check_auth(username, password):
+    pw = get_user_password(username)
+    return pw is not None and pw == password
+
+def require_auth(admin_only=False):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            auth = request.authorization
+            if not auth or not check_auth(auth.username, auth.password):
+                return Response("Authentication required", 401, {"WWW-Authenticate": "Basic realm=\"Login Required\""})
+            if admin_only and auth.username != "admin":
+                return Response("Admin access required", 403)
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
 HTPASSWD_PATH = "/etc/apache2/.htpasswd"
 APACHE_CONF_PATH = "/etc/apache2/sites-available/git.conf"
-repo_access = {}
-user_passwords = {}
-starting_repo = "base.git"
-
-def load_state():
-    global repo_access, user_passwords
-    try:
-        with open(REPO_ACCESS_PATH) as f:
-            repo_access = {key: set(value) for key, value in json.load(f).items()}
-    except:
-        repo_access = {starting_repo: {"admin"}}
-    try:
-        with open(USER_PASSWORDS_PATH) as f:
-            user_passwords = json.loads(f.read())
-    except:
-        user_passwords = {"admin": "admin"}
-
-def save_state():
-    with open(REPO_ACCESS_PATH, "w") as f:
-        f.write(json.dumps({key: list(value) for key, value in repo_access.items()}))
-    with open(USER_PASSWORDS_PATH, "w") as f:
-        f.write(json.dumps(user_passwords))
-
-load_state()
 
 last_push = ""
 
 @app.route("/")
 def index():
-    return "Python server running alongside Apache Git server. Last push: " + str(last_push)
+    resp = Response(json.dumps({
+        "status": "ok",
+        "message": "Python server running alongside Apache Git server.",
+        "last_push": last_push
+    }), mimetype="application/json")
+    return resp
 
 @app.route("/cicd/<string:repo_name>/<string:branch>/<string:commit_hash>", methods=["POST"])
 def handle_cicd(repo_name, branch, commit_hash):
     global last_push
     last_push = [repo_name, branch, commit_hash]
-    return f"Received push for {repo_name} on branch {branch} at {commit_hash}"
+    resp = Response(json.dumps({
+        "status": "ok",
+        "message": f"Received push for {repo_name} on branch {branch} at {commit_hash}",
+        "data": {"repo": repo_name, "branch": branch, "commit": commit_hash}
+    }), mimetype="application/json")
+    return resp
 
 @app.route("/access", methods=["POST"])
+@require_auth(admin_only=True)
 def set_access():
     data = request.json
     user = data.get("user")
     repo = data.get("repo")
     password = data.get("password")
     if not all([user, repo, password]):
-        return "Missing fields"
-    if repo not in repo_access:
-        repo_access[repo] = set()
-    repo_access[repo].add(user)
-    user_passwords[user] = password
-    save_state()
+        return jsonify({"status": "error", "message": "Missing fields."}), 400
+    add_repo_access(repo, user)
+    set_user_password(user, password)
     regenerate_htpasswd()
     regenerate_apache_conf()
     reload_apache()
-    return "Access added for user: "+str(user)
+    resp = Response(json.dumps({"status": "ok", "message": f"Access added for user: {user}"}), mimetype="application/json")
+    return resp
 
 @app.route("/access", methods=["DELETE"])
+@require_auth(admin_only=True)
 def remove_access():
     data = request.json
     user = data.get("user")
     repo = data.get("repo")
     if not all([user, repo]):
-        return "Missing fields"
-    if repo in repo_access and user in repo_access[repo]:
-        repo_access[repo].remove(user)
-        if not any(user in users for users in repo_access.values()):
-            user_passwords.pop(user, None)
-        save_state()
+        return jsonify({"status": "error", "message": "Missing fields."}), 400
+    if user == "admin":
+        resp = Response(json.dumps({"status": "error", "message": "Cannot remove admin user from access."}), mimetype="application/json")
+        resp.status_code = 400
+        return resp
+    if get_repo_access(repo) and user in get_repo_access(repo):
+        remove_repo_access(repo, user)
+        if not any(user in users for users in get_all_repo_access().values()):
+            remove_user_if_no_access(user)
         regenerate_htpasswd()
         regenerate_apache_conf()
     else:
-        return "User/repo not found"
+        resp = Response(json.dumps({"status": "error", "message": "User/repo not found."}), mimetype="application/json")
+        resp.status_code = 404
+        return resp
     reload_apache()
-    return "Access revoked"
+    resp = Response(json.dumps({"status": "ok", "message": "Access revoked."}), mimetype="application/json")
+    return resp
 
 @app.route("/access", methods=["GET"])
+@require_auth(admin_only=True)
 def get_access():
-    return json.dumps({key: list(value) for key, value in repo_access.items()})
+    access = get_all_repo_access()
+    resp = Response(json.dumps({"status": "ok", "data": access}), mimetype="application/json")
+    return resp
 
 def regenerate_htpasswd():
     try:
         lines = []
-        for user, password in user_passwords.items():
+        users = get_all_users()
+        for user, password in users.items():
             completed = subprocess.run(["htpasswd", "-nbB", user, password], check=True, capture_output=True, text=True)
             lines.append(completed.stdout.strip())
         with open(HTPASSWD_PATH, "w") as f:
@@ -112,7 +128,7 @@ def regenerate_apache_conf():
             "        Require all granted",
             "    </Directory>"
         ]
-        for repo, users in repo_access.items():
+        for repo, users in get_all_repo_access().items():
             if users:
                 users_str = " ".join(sorted(users))
                 configuration.append(f"    <LocationMatch \"^/git/{repo}\">")
@@ -141,36 +157,44 @@ def manual_reload():
     return "Apache reloading"
 
 @app.route("/repos")
+@require_auth()
 def list_repos():
     base = "/var/www/git"
     try:
         repos = [x for x in os.listdir(base) if x.endswith(".git") and os.path.isdir(os.path.join(base, x))]
     except:
         repos = []
-    return json.dumps(sorted(repos))
+    resp = Response(json.dumps({"status": "ok", "data": sorted(repos)}), mimetype="application/json")
+    return resp
 
 @app.route("/repo/<repo>/branches")
+@require_auth()
 def repo_branches(repo):
     base = "/var/www/git"
     repo_path = os.path.join(base, repo)
     if not os.path.isdir(repo_path):
-        return json.dumps([])
+        return jsonify({"status": "ok", "data": []})
     p = subprocess.run(["git", "--git-dir", repo_path, "branch", "-a", "--format=%(refname:short)"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     branches = [b for b in p.stdout.decode().splitlines() if b]
-    return json.dumps(sorted(branches))
+    resp = Response(json.dumps({"status": "ok", "data": sorted(branches)}), mimetype="application/json")
+    return resp
 
 @app.route("/repo/<repo>/<branch>/file_tree")
+@require_auth()
 def repo_file_tree(repo, branch):
     base = "/var/www/git"
     repo_path = os.path.join(base, repo)
     if not os.path.isdir(repo_path):
-        return json.dumps({})
+        resp = Response(json.dumps({"status": "ok", "data": {}}), mimetype="application/json")
+        return resp
     with tempfile.TemporaryDirectory() as tmp:
         p=os.system("git config --global --add safe.directory /var/www/git/"+repo)
         print(p)
         result = subprocess.run(["git", "clone", "--branch", branch, "--single-branch", repo_path, tmp], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode != 0:
-            return json.dumps({"error": "clone failed", "details": result.stderr.decode()})
+            resp = Response(json.dumps({"status": "error", "message": "clone failed", "details": result.stderr.decode()}), mimetype="application/json")
+            resp.status_code = 500
+            return resp
         tree = {}
         for root, dirs, files in os.walk(tmp):
             rel = os.path.relpath(root, tmp)
@@ -182,14 +206,16 @@ def repo_file_tree(repo, branch):
                 d[f] = None
             for dir in sorted(dirs):
                 d.setdefault(dir, {})
-        return json.dumps(tree, sort_keys=True)
+        resp = Response(json.dumps({"status": "ok", "data": tree}), mimetype="application/json")
+        return resp
 
 @app.route("/repo/<repo>/<branch>/commits")
+@require_auth()
 def repo_commits(repo, branch):
     base = "/var/www/git"
     repo_path = os.path.join(base, repo)
     if not os.path.isdir(repo_path):
-        return json.dumps([])
+        return jsonify({"status": "ok", "data": []})
     p = subprocess.run(["git", "--git-dir", repo_path, "log", branch, "--pretty=format:%H|%an|%ad", "--date=iso"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     lines = p.stdout.decode().splitlines()
     commits = []
@@ -197,20 +223,44 @@ def repo_commits(repo, branch):
         parts = line.split("|", 2)
         if len(parts) == 3:
             commits.append({"hash": parts[0], "author": parts[1], "date": parts[2]})
-    return json.dumps(commits)
+    resp = Response(json.dumps({"status": "ok", "data": commits}), mimetype="application/json")
+    return resp
 
 @app.route("/repo/new/<name>", methods=["GET"])
+@require_auth(admin_only=True)
 def create_repo(name):
     if not name or "/" in name or name.endswith(".git"):
-        return json.dumps({"error": "invalid repo name"})
+        resp = Response(json.dumps({"status": "error", "message": "invalid repo name"}), mimetype="application/json")
+        resp.status_code = 400
+        return resp
     repo_dir = f"/var/www/git/{name}.git"
     if os.path.exists(repo_dir):
-        return json.dumps({"error": "repo exists"})
+        resp = Response(json.dumps({"status": "error", "message": "repo exists"}), mimetype="application/json")
+        resp.status_code = 400
+        return resp
     result = subprocess.run(["git", "init", "--bare", repo_dir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode != 0:
-        return json.dumps({"error": result.stderr.decode()})
-    return json.dumps({"created": True})
+        resp = Response(json.dumps({"status": "error", "message": result.stderr.decode()}), mimetype="application/json")
+        resp.status_code = 500
+        return resp
+    add_repo_access(f"{name}.git", "admin")
+    resp = Response(json.dumps({"status": "ok", "created": True, "message": f"Repository '{name}' created."}), mimetype="application/json")
+    return resp
+
+@app.route("/configured", methods=["GET", "POST"])
+def configured():
+    if request.method == "GET":
+        resp = Response(json.dumps({"configured": get_configured()}), mimetype="application/json")
+        return resp
+    if request.method == "POST":
+        if get_configured():
+            resp = Response(json.dumps({"status": "ok", "configured": True, "message": "Server already configured."}), mimetype="application/json")
+            return resp
+        set_configured()
+        resp = Response(json.dumps({"status": "ok", "configured": True, "message": "Server marked as configured."}), mimetype="application/json")
+        return resp
 
 regenerate_htpasswd()
 regenerate_apache_conf()
+
 app.run(host="0.0.0.0", port=5000)
