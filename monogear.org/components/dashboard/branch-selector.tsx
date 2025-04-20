@@ -51,7 +51,7 @@ export function BranchSelector({ branches }: BranchSelectorProps) {
                 onClick={() => setIsOpen(!isOpen)}
             >
                 <GitBranchIcon className="h-4 w-4 mr-1" />
-                main
+                master
                 <ChevronDown className="h-4 w-4 ml-1" />
             </Button>
 

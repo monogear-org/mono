@@ -4,16 +4,61 @@ import { Button } from "../../../../components/ui/button"
 import { BranchSelector } from "../../../../components/dashboard/branch-selector"
 import { GitBranchIcon, CheckIcon, XIcon, ClipboardIcon, ChevronRightIcon } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { UserFilter } from "../../../../components/dashboard/user-filter"
 import logo from "../../../../public/logo.png"
+import { getHeaders } from "../../../../lib/fetchHeaders"
 
 export default function CommitsPage({ params }) {
-
-    const project = projects.find((p) => p.id.toString() === params.id) || projects[0]
-    const [selectedBranch, setSelectedBranch] = useState("main")
+    var server_url = ""
+    try {
+        eval("window")
+        server_url = localStorage.getItem("currentServer")
+        if (server_url == null) {
+            window.location = "/auth"
+            return
+        }
+    } catch {}
+    const [project, setProject] = useState({})
+    const [selectedBranch, setSelectedBranch] = useState("master")
     const [selectedUser, setSelectedUser] = useState("All users")
-    const [selectedTime, setSelectedTime] = useState("All time")
+
+    useEffect(() => {
+            async function loadAll() {
+                const base = server_url + "repo/" + params.id + "/" + selectedBranch + "/"
+                const [
+                commitsRes,
+                fileTreeRes,
+                repoDataRes,
+                branchesRes
+                ] = await Promise.all([
+                fetch(base + "commits",   { headers: getHeaders() }),
+                fetch(base + "file_tree", { headers: getHeaders() }),
+                fetch(server_url + "repo_data?name=" + params.id, { headers: getHeaders() }),
+                fetch(server_url + "repo/" + params.id + "/" + "branches",  { headers: getHeaders() })
+                ])
+    
+                const commitsJson   = await commitsRes.json()
+                const fileTreeJson  = await fileTreeRes.json()
+                const repoDataJson  = await repoDataRes.json()
+                const branchesJson  = await branchesRes.json()
+    
+                setProject({
+                commits:  commitsJson.data,
+                files:    fileTreeJson.files,    // or fileTreeJson.data.files if that’s the real shape
+                ...repoDataJson,
+                branches: branchesJson.data
+                })
+            }
+    
+            loadAll()
+        }, [selectedBranch, params.id])
+    
+    
+        if (JSON.stringify(project) == "{}") {
+            return
+        }
+        console.log(project)
 
     return (
         <div className="min-h-screen bg-[#0A0A0F] text-white">
@@ -85,7 +130,6 @@ export default function CommitsPage({ params }) {
                         <UserFilter
                             onFilterChange={(username) => {
                                 setSelectedUser(username || "All users")
-                                // Filter commits by username if provided
                             }}
                         />
                     </div>

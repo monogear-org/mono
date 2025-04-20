@@ -6,14 +6,67 @@ import { Avatar } from "../../../../../components/ui/avatar"
 import { Separator } from "../../../../../components/ui/separator"
 import { GitCommitIcon, ChevronRightIcon, CheckIcon, XIcon, MessageSquareIcon, RocketIcon, BeakerIcon, ClockIcon, UserIcon, GitBranchIcon, FileIcon } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import logo from "../../../../../public/logo.png"
+import { getHeaders } from "../../../../../lib/fetchHeaders"
 
-export default function CommitDetailPage({ params }) {
-    // Find the project and commit by ID
-    const project = projects.find((p) => p.id.toString() === params.id) || projects[0]
-    const commit = project.commits.find((c) => c.id === params.commitId) || project.commits[0]
+export default function CommitConversationPage({ params }) {
+    var server_url = ""
+    try {
+        eval("window")
+        server_url = localStorage.getItem("currentServer")
+        if (server_url == null) {
+            window.location = "/auth"
+            return
+        }
+    } catch {}
+    const [project, setProject] = useState({})
     const [comment, setComment] = useState("")
+    var selectedBranch = "master"
+    const [comments, setComments] = useState([])
+
+    useEffect(() => {
+                async function loadAll() {
+                    const base = server_url + "repo/" + params.id + "/" + selectedBranch + "/"
+                    const [
+                    commitsRes,
+                    fileTreeRes,
+                    repoDataRes,
+                    branchesRes,
+                    commentsRes
+                    ] = await Promise.all([
+                    fetch(base + "commits",   { headers: getHeaders() }),
+                    fetch(base + "file_tree", { headers: getHeaders() }),
+                    fetch(server_url + "repo_data?name=" + params.id, { headers: getHeaders() }),
+                    fetch(server_url + "repo/" + params.id + "/" + "branches",  { headers: getHeaders() }),
+                    fetch(server_url + "get_comments?commit="+params.commitId, {headers: getHeaders()})
+                    ])
+        
+                    const commitsJson   = await commitsRes.json()
+                    const fileTreeJson  = await fileTreeRes.json()
+                    const repoDataJson  = await repoDataRes.json()
+                    const branchesJson  = await branchesRes.json()
+                    const commentsJson  = await commentsRes.json()
+
+                    setComments(commentsJson)
+        
+                    setProject({
+                    commits:  commitsJson.data,
+                    files:    fileTreeJson.files,    // or fileTreeJson.data.files if that’s the real shape
+                    ...repoDataJson,
+                    branches: branchesJson.data
+                    })
+                }
+        
+                loadAll()
+            }, [selectedBranch, params.id])
+
+            if (JSON.stringify(project) == "{}") {
+                return
+            }
+            console.log(project)
+    
+    const commit = project.commits.find((c) => c.id === params.commitId)
 
     return (
         <div className="min-h-screen bg-[#0A0A0F] text-white">
@@ -130,11 +183,7 @@ export default function CommitDetailPage({ params }) {
                         <div className="flex flex-wrap gap-3 mt-4">
                             <div className="flex items-center px-3 py-1.5 bg-[#1A1A24] rounded-md text-sm">
                                 <FileIcon className="h-4 w-4 mr-2 text-blue-400" />
-                                <span>3 files changed</span>
-                            </div>
-                            <div className="flex items-center px-3 py-1.5 bg-[#1A1A24] rounded-md text-sm">
-                                <span className="text-green-500 mr-1">+24</span>
-                                <span className="text-red-500">-12</span>
+                                <span>Few files changed</span>
                             </div>
                         </div>
                     </div>
@@ -148,43 +197,36 @@ export default function CommitDetailPage({ params }) {
                         <Separator className="bg-[#1E1E2A] mb-4" />
 
                         <div className="space-y-6">
-                            <div className="flex gap-4">
-                                <Avatar className="h-10 w-10 rounded-full bg-[#3273FF] flex-shrink-0">
-                                    <span className="text-sm font-medium">JD</span>
-                                </Avatar>
-                                <div className="flex-1">
-                                    <div className="bg-[#1A1A24] rounded-lg p-4 mb-1">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="font-medium">John Doe</span>
-                                            <span className="text-xs text-gray-400">2 minutes ago</span>
+                            {comments.map((x) => {
+                                return (
+                                    <>
+                                    <div className="flex gap-4">
+                                        <Avatar className="h-10 w-10 rounded-full bg-[#3273FF] flex-shrink-0">
+                                            <span className="text-sm font-medium">{x.name.slice(0,2)}</span>
+                                        </Avatar>
+                                        <div className="flex-1">
+                                            <div className="bg-[#1A1A24] rounded-lg p-4 mb-1">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="font-medium">{x.name}</span>
+                                                    <span className="text-xs text-gray-400">{x.time}</span>
+                                                </div>
+                                                <p className="text-sm text-gray-300">
+                                                    {x.message}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <p className="text-sm text-gray-300">
-                                            This commit looks good. The authentication flow is working as expected now.
-                                        </p>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-4">
-                                <Avatar className="h-10 w-10 rounded-full bg-green-600 flex-shrink-0">
-                                    <span className="text-sm font-medium">AS</span>
-                                </Avatar>
-                                <div className="flex-1">
-                                    <div className="bg-[#1A1A24] rounded-lg p-4 mb-1">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="font-medium">Alice Smith</span>
-                                            <span className="text-xs text-gray-400">1 minute ago</span>
-                                        </div>
-                                        <p className="text-sm text-gray-300">
-                                            I've tested the changes and everything works as expected. Ready for deployment.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                                    </>
+                                )
+                            })}
 
                             <div className="flex gap-4">
                                 <Avatar className="h-10 w-10 rounded-full bg-[#3273FF] flex-shrink-0">
-                                    <span className="text-sm font-medium">JD</span>
+                                    <span className="text-sm font-medium">{
+                                        (()=>{
+                                            var details = JSON.parse(localStorage.getItem(localStorage.getItem("currentServer")))
+                                            return details.username.slice(0, 2)
+                                        })()}</span>
                                 </Avatar>
                                 <div className="flex-1">
                                     <div className="bg-[#1A1A24] rounded-lg p-4">
@@ -201,7 +243,12 @@ export default function CommitDetailPage({ params }) {
                                             >
                                                 Cancel
                                             </Button>
-                                            <Button className="bg-[#3273FF] hover:bg-[#3273FF]/70 text-white">Comment</Button>
+                                            <Button className="bg-[#3273FF] hover:bg-[#3273FF]/70 text-white" onClick={() => {
+                                                fetch(server_url+"comment?commit="+params.commitId+"&message="+encodeURIComponent(comment), {headers: getHeaders()}).then(async (x) => {
+                                                    await x.json()
+                                                    window.location = window.location.href
+                                                })
+                                            }}>Comment</Button>
                                         </div>
                                     </div>
                                 </div>

@@ -252,7 +252,7 @@ def repo_branches(repo):
     if not os.path.isdir(repo_path):
         return json.dumps({"status": "ok", "data": []})
     p = subprocess.run(["git", "--git-dir", repo_path, "branch", "-a", "--format=%(refname:short)"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    branches = [b for b in p.stdout.decode().splitlines() if b]
+    branches = [{"name":b, "isDefault": True if b=="master" else False} for b in p.stdout.decode().splitlines() if b]
     resp = Response(json.dumps({"status": "ok", "data": sorted(branches)}), mimetype="application/json")
     return resp
 
@@ -429,6 +429,12 @@ def get_repo_data(name):
     
     return value
 
+@require_auth()
+@app.route("/repo_data")
+def single_repo_data_route():
+    name=request.args["name"]
+    return json.dumps(get_repo_data(name))
+
 def set_repo_data(name, data):
     value = get_value("data_repo_"+name)
     if value in [False, None]:
@@ -447,6 +453,29 @@ def projects_data_route():
     data = [get_repo_data(x) for x in repos]
     
     return data
+
+@app.route("/get_comments")
+@require_auth()
+def get_comments():
+    comments = get_value("comments_"+request.args["commit"])
+    if comments in [False, None]:
+        comments = []
+    return json.dumps(comments)
+
+@app.route("/comment")
+@require_auth()
+def comment_on_commit():
+    username = request.authorization.username
+    comments = get_value("comments_"+request.args["commit"])
+    if comments in [False, None]:
+        comments = []
+    comments.append({
+        "name": username,
+        "message": request.args["message"],
+        "time":time.time()
+    })
+    set_value("comments_"+request.args["commit"], comments)
+    return json.dumps(comments)
 
 regenerate_htpasswd()
 regenerate_apache_conf()

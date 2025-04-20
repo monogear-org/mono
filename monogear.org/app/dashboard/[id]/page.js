@@ -10,9 +10,9 @@ import { Code, GitPullRequestIcon, AlertCircle, Play, Database, BarChart3, Shiel
 import Link from "next/link"
 import logo from "../../../public/logo.png"
 import { useEffect, useState } from "react"
-import { getHeaders } from "../../lib/fetchHeaders"
+import { getHeaders } from "../../../lib/fetchHeaders"
 
-export default function ProjectPage({}) {
+export default function ProjectPage({params}) {
     var server_url = ""
     try {
         eval("window")
@@ -22,16 +22,45 @@ export default function ProjectPage({}) {
             return
         }
     } catch {}
-    const [project, setProject] = useState(null)
+    const [project, setProject] = useState({})
     const [requestsCompleted, setRequestsCompleted] = useState(0)
-
+    const [currentBranch, setCurrentBranch] = useState("master")
     useEffect(() => {
-        fetch(server_url+"repo/")
-    })
+        async function loadAll() {
+            const base = server_url + "repo/" + params.id + "/" + currentBranch + "/"
+            const [
+            commitsRes,
+            fileTreeRes,
+            repoDataRes,
+            branchesRes
+            ] = await Promise.all([
+            fetch(base + "commits",   { headers: getHeaders() }),
+            fetch(base + "file_tree", { headers: getHeaders() }),
+            fetch(server_url + "repo_data?name=" + params.id, { headers: getHeaders() }),
+            fetch(server_url + "repo/" + params.id + "/" + "branches",  { headers: getHeaders() })
+            ])
 
-    if (requestsCompleted != 3) {
+            const commitsJson   = await commitsRes.json()
+            const fileTreeJson  = await fileTreeRes.json()
+            const repoDataJson  = await repoDataRes.json()
+            const branchesJson  = await branchesRes.json()
+
+            setProject({
+            commits:  commitsJson.data,
+            files:    fileTreeJson.files,    // or fileTreeJson.data.files if that’s the real shape
+            ...repoDataJson,
+            branches: branchesJson.data
+            })
+        }
+
+        loadAll()
+    }, [currentBranch, params.id])
+
+
+    if (JSON.stringify(project) == "{}") {
         return
     }
+    console.log(project)
 
     return (
         <div className="min-h-screen bg-[#0A0A0F] text-white">
@@ -221,129 +250,3 @@ export default function ProjectPage({}) {
         </div>
     )
 }
-
-// Sample project data
-const projects = [
-    {
-        id: 1,
-        name: "API Service",
-        owner: "monogear",
-        repo: "api-service",
-        description: "Core API service for the Monogear platform",
-        branch: "main",
-        lastUpdated: "Updated 2h ago",
-        icon: "A",
-        branches: [
-            { name: "main", isDefault: true },
-            { name: "develop", isDefault: false },
-            { name: "feature/auth", isDefault: false },
-        ],
-        commits: [
-            {
-                id: "f74ad8a",
-                message: "added admin only access to apache reload",
-                author: "aludayalu",
-                date: "1 hour ago",
-                status: "failed",
-            },
-            {
-                id: "c8fee6f",
-                message: "adding auth flow and onboarding",
-                author: "Atharv777",
-                date: "1 hour ago",
-                status: "failed",
-            },
-            {
-                id: "f819106",
-                message: "moved all state to the db added auth to endpoints with a default user admin",
-                author: "aludayalu",
-                date: "1 hour ago",
-                status: "success",
-            },
-            {
-                id: "4d0ca73",
-                message: "monogear published to npm",
-                author: "aludayalu",
-                date: "11 hours ago",
-                status: "success",
-            },
-            {
-                id: "14d5b7b",
-                message: "fixed the setup command",
-                author: "aludayalu",
-                date: "11 hours ago",
-                status: "success",
-            },
-            {
-                id: "14ab76f",
-                message: "basic cli done",
-                author: "aludayalu",
-                date: "11 hours ago",
-                status: "success",
-            },
-            {
-                id: "9b8ceff",
-                message: "hi",
-                author: "aludayalu",
-                date: "11 hours ago",
-                status: "pending",
-            },
-        ],
-        files: [
-            {
-                id: "1",
-                name: "src",
-                type: "directory",
-                children: [
-                    {
-                        id: "1-1",
-                        name: "controllers",
-                        type: "directory",
-                        children: [
-                            { id: "1-1-1", name: "auth.controller.js", type: "file" },
-                            { id: "1-1-2", name: "user.controller.js", type: "file" },
-                            { id: "1-1-3", name: "project.controller.js", type: "file" },
-                        ],
-                    },
-                    {
-                        id: "1-2",
-                        name: "models",
-                        type: "directory",
-                        children: [
-                            { id: "1-2-1", name: "user.model.js", type: "file" },
-                            { id: "1-2-2", name: "project.model.js", type: "file" },
-                            { id: "1-2-3", name: "repository.model.js", type: "file" },
-                        ],
-                    },
-                    {
-                        id: "1-3",
-                        name: "routes",
-                        type: "directory",
-                        children: [
-                            { id: "1-3-1", name: "auth.routes.js", type: "file" },
-                            { id: "1-3-2", name: "user.routes.js", type: "file" },
-                            { id: "1-3-3", name: "project.routes.js", type: "file" },
-                        ],
-                    },
-                    { id: "1-4", name: "app.js", type: "file" },
-                    { id: "1-5", name: "config.js", type: "file" },
-                ],
-            },
-            {
-                id: "2",
-                name: "tests",
-                type: "directory",
-                children: [
-                    { id: "2-1", name: "auth.test.js", type: "file" },
-                    { id: "2-2", name: "user.test.js", type: "file" },
-                    { id: "2-3", name: "project.test.js", type: "file" },
-                ],
-            },
-            { id: "3", name: ".gitignore", type: "file" },
-            { id: "4", name: "package.json", type: "file" },
-            { id: "5", name: "README.md", type: "file" },
-            { id: "6", name: "Dockerfile", type: "file" },
-        ],
-    },
-    // Other projects remain the same...
-]
