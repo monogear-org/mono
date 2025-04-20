@@ -4,10 +4,22 @@ import os, tempfile
 from functools import wraps
 from db import (
     get_user_password, set_user_password, get_repo_access, add_repo_access, remove_repo_access,
-    remove_user_if_no_access, get_all_repo_access, get_all_users, get_configured, set_configured
+    remove_user_if_no_access, get_all_repo_access, get_all_users, get_configured, set_configured, set_value, get_value
 )
 
 app = Flask(__name__)
+
+@app.before_request
+def handle_options():
+    if request.method == "OPTIONS":
+        return Response(status=200)
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+    return response
 
 def check_auth(username, password):
     pw = get_user_password(username)
@@ -35,10 +47,23 @@ last_push = ""
 def index():
     resp = Response(json.dumps({
         "status": "ok",
-        "message": "Python server running alongside Apache Git server.",
+        "message": "Python server running alongside Apache Git server",
         "last_push": last_push
     }), mimetype="application/json")
     return resp
+
+@app.route("/check_credentials")
+def check_credentials():
+    args=dict(request.args)
+    return json.dumps(check_auth(args["username"], args["password"]))
+
+@app.route("/set_data", methods = ["POST"])
+@require_auth()
+def set_data():
+    args = request.json
+    for x in args:
+        set_value(x, args[x])
+    return json.dumps(True)
 
 @app.route("/cicd/<string:repo_name>/<string:branch>/<string:commit_hash>", methods=["POST"])
 def handle_cicd(repo_name, branch, commit_hash):
@@ -59,7 +84,7 @@ def set_access():
     repo = data.get("repo")
     password = data.get("password")
     if not all([user, repo, password]):
-        return jsonify({"status": "error", "message": "Missing fields."}), 400
+        return json.dumps({"status": "error", "message": "Missing fields"}), 400
     add_repo_access(repo, user)
     set_user_password(user, password)
     regenerate_htpasswd()
@@ -75,9 +100,9 @@ def remove_access():
     user = data.get("user")
     repo = data.get("repo")
     if not all([user, repo]):
-        return jsonify({"status": "error", "message": "Missing fields."}), 400
+        return json.dumps({"status": "error", "message": "Missing fields"}), 400
     if user == "admin":
-        resp = Response(json.dumps({"status": "error", "message": "Cannot remove admin user from access."}), mimetype="application/json")
+        resp = Response(json.dumps({"status": "error", "message": "Cannot remove admin user from access"}), mimetype="application/json")
         resp.status_code = 400
         return resp
     if get_repo_access(repo) and user in get_repo_access(repo):
@@ -87,11 +112,11 @@ def remove_access():
         regenerate_htpasswd()
         regenerate_apache_conf()
     else:
-        resp = Response(json.dumps({"status": "error", "message": "User/repo not found."}), mimetype="application/json")
+        resp = Response(json.dumps({"status": "error", "message": "User/repo not found"}), mimetype="application/json")
         resp.status_code = 404
         return resp
     reload_apache()
-    resp = Response(json.dumps({"status": "ok", "message": "Access revoked."}), mimetype="application/json")
+    resp = Response(json.dumps({"status": "ok", "message": "Access revoked"}), mimetype="application/json")
     return resp
 
 @app.route("/access", methods=["GET"])
@@ -174,7 +199,7 @@ def repo_branches(repo):
     base = "/var/www/git"
     repo_path = os.path.join(base, repo)
     if not os.path.isdir(repo_path):
-        return jsonify({"status": "ok", "data": []})
+        return json.dumps({"status": "ok", "data": []})
     p = subprocess.run(["git", "--git-dir", repo_path, "branch", "-a", "--format=%(refname:short)"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     branches = [b for b in p.stdout.decode().splitlines() if b]
     resp = Response(json.dumps({"status": "ok", "data": sorted(branches)}), mimetype="application/json")
@@ -200,7 +225,7 @@ def repo_file_tree(repo, branch):
         for root, dirs, files in os.walk(tmp):
             rel = os.path.relpath(root, tmp)
             d = tree
-            if rel != ".":
+            if rel != "":
                 for part in rel.split(os.sep):
                     d = d.setdefault(part, {})
             for f in sorted(files):
@@ -216,7 +241,7 @@ def repo_commits(repo, branch):
     base = "/var/www/git"
     repo_path = os.path.join(base, repo)
     if not os.path.isdir(repo_path):
-        return jsonify({"status": "ok", "data": []})
+        return json.dumps({"status": "ok", "data": []})
     p = subprocess.run(["git", "--git-dir", repo_path, "log", branch, "--pretty=format:%H|%an|%ad", "--date=iso"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     lines = p.stdout.decode().splitlines()
     commits = []
@@ -245,21 +270,23 @@ def create_repo(name):
         resp.status_code = 500
         return resp
     add_repo_access(f"{name}.git", "admin")
-    resp = Response(json.dumps({"status": "ok", "created": True, "message": f"Repository '{name}' created."}), mimetype="application/json")
+    resp = Response(json.dumps({"status": "ok", "created": True, "message": f"Repository '{name}' created"}), mimetype="application/json")
     return resp
 
-@app.route("/configured", methods=["GET", "POST"])
-def configured():
-    if request.method == "GET":
-        resp = Response(json.dumps({"configured": get_configured()}), mimetype="application/json")
+@app.route("/configured", methods=["GET"])
+def configured_get_route():
+    resp = Response(json.dumps({"configured": get_configured()}), mimetype="application/json")
+    return resp
+
+@app.route("/configured", methods=["POST"])
+@require_auth(admin_only=True)
+def configured_post_route():
+    if get_configured():
+        resp = Response(json.dumps({"status": "ok", "configured": True, "message": "Server has already been configured"}), mimetype="application/json")
         return resp
-    if request.method == "POST":
-        if get_configured():
-            resp = Response(json.dumps({"status": "ok", "configured": True, "message": "Server already configured."}), mimetype="application/json")
-            return resp
-        set_configured()
-        resp = Response(json.dumps({"status": "ok", "configured": True, "message": "Server marked as configured."}), mimetype="application/json")
-        return resp
+    set_configured()
+    resp = Response(json.dumps({"status": "ok", "configured": True, "message": "Server marked as configured"}), mimetype="application/json")
+    return resp
 
 regenerate_htpasswd()
 regenerate_apache_conf()

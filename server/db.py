@@ -1,4 +1,5 @@
 import sqlite3
+import json
 import os
 from contextlib import contextmanager
 
@@ -85,5 +86,21 @@ def get_configured():
 def set_configured():
     with db_cursor() as c:
         c.execute('UPDATE config SET value="true" WHERE key="configured"')
+
+def set_value(key, value):
+    value = json.dumps(value)
+    with db_cursor() as c:
+        c.execute(
+            'INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)',
+            (key, value)
+        )
+
+def get_value(key):
+    with db_cursor() as c:
+        row = c.execute(
+            'SELECT value FROM config WHERE key = ?',
+            (key,)
+        ).fetchone()
+        return json.loads(row[0]) if row else None
 
 init_db()
