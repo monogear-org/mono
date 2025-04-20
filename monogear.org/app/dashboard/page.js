@@ -1,13 +1,63 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { PlusIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, GitBranchIcon, ClockIcon } from "lucide-react"
 import logo from "../../public/logo.png"
+import { getHeaders } from "../../lib/fetchHeaders"
+
+function timeAgo(unixTime) {
+    const now = Date.now();
+    let t = Number(unixTime);
+    if (t < 1e12) t *= 1000;
+    let diff = now - t;
+    if (diff < 0) diff = 0;
+    const MINUTE = 60 * 1000;
+    const HOUR   = 60 * MINUTE;
+    const DAY    = 24 * HOUR;
+    const MONTH  = 30 * DAY;
+    const YEAR   = 365 * DAY;
+    if (diff < MINUTE)           return 'just now';
+    if (diff < HOUR)             return Math.floor(diff / MINUTE) + 'm ago';
+    if (diff < DAY)              return Math.floor(diff / HOUR)   + 'h ago';
+    if (diff < MONTH)            return Math.floor(diff / DAY)    + 'd ago';
+    if (diff < YEAR)             return Math.floor(diff / MONTH)  + 'mo ago';
+    return Math.floor(diff / YEAR) + 'y ago';
+}
+
+// {
+//     id: 6,
+//     name: "Documentation",
+//     owner: "monogear",
+//     repo: "docs",
+//     description: "Official documentation and guides",
+//     branch: "main",
+//     lastUpdated: "Updated 2d ago",
+//     icon: "D",
+// }
 
 export default function Dashboard() {
+    var server_url = ""
+    try {
+        eval("window")
+        server_url = localStorage.getItem("currentServer")
+        if (server_url == null) {
+            window.location = "/auth"
+            return
+        }
+    } catch { }
+
+    const [repos, setRepos] = useState([])
+
+    useEffect(() => {
+        fetch(server_url+"repos_data", {
+            headers: getHeaders()
+        }).then(async (x) => {
+            setRepos(await x.json())
+        })
+    })
 
     const [searchTerm, setSearchTerm] = useState("")
 
@@ -30,7 +80,7 @@ export default function Dashboard() {
                 <div className="container mx-auto px-4">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center gap-8">
-                            <Link href="/repo" className="flex items-center gap-2">
+                            <Link href="/dashboard" className="flex items-center gap-2">
                                 <div className='flex gap-2 w-full items-center'>
                                     <img src={logo.src} alt="monogear" className="relative z-[2] h-10" draggable="false" />
                                     <p className='text-lg lato font-semibold'>monogear</p>
@@ -40,9 +90,6 @@ export default function Dashboard() {
                             <nav className="hidden md:flex items-center space-x-6">
                                 <Link href="/dashboard" className="text-white hover:text-blue-400 text-sm font-medium">
                                     Dashboard
-                                </Link>
-                                <Link href="/repositories" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
-                                    Repositories
                                 </Link>
                                 <Link href="/pipelines" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
                                     Pipelines
@@ -127,7 +174,7 @@ export default function Dashboard() {
 
 function RepoCard({ repo }) {
     return (
-        <Link href={`/repo/${repo.id}`} className="block h-full">
+        <Link href={`/dashboard/${repo.id}`} className="block h-full">
             <div className="h-full border border-[#1E1E2A] rounded-lg p-4 bg-[#121218] hover:border-blue-600/50 transition-colors group flex flex-col gap-4">
                 <div className="flex flex-col gap-4 justify-between">
                     <div className="flex items-start justify-between">
@@ -153,78 +200,14 @@ function RepoCard({ repo }) {
                 <div className="flex items-center justify-between text-xs flex-1">
                     <div className="flex items-center gap-1 text-gray-400">
                         <GitBranchIcon className="h-3 w-3" />
-                        <span>{repo.branch}</span>
+                        <span>{repo.latestBranch}</span>
                     </div>
                     <div className="flex items-center gap-1 text-gray-400">
                         <ClockIcon className="h-3 w-3" />
-                        <span>{repo.lastUpdated}</span>
+                        <span>{timeAgo(repo.lastUpdated)}</span>
                     </div>
                 </div>
             </div>
         </Link>
     )
 }
-
-// Sample project data
-const repos = [
-    {
-        id: 1,
-        name: "API Service",
-        owner: "monogear",
-        repo: "api-service",
-        description: "Core API service for the Monogear platform",
-        branch: "main",
-        lastUpdated: "Updated 2h ago",
-        icon: "A",
-    },
-    {
-        id: 2,
-        name: "Web Frontend",
-        owner: "monogear",
-        repo: "web-frontend",
-        description: "React-based frontend for the Monogear dashboard",
-        branch: "main",
-        lastUpdated: "Updated 5h ago",
-        icon: "W",
-    },
-    {
-        id: 3,
-        name: "CI/CD Pipeline",
-        owner: "monogear",
-        repo: "cicd-pipeline",
-        description: "Customizable CI/CD pipeline components",
-        branch: "develop",
-        lastUpdated: "Updated 1d ago",
-        icon: "C",
-    },
-    {
-        id: 4,
-        name: "Auth Service",
-        owner: "monogear",
-        repo: "auth-service",
-        description: "Authentication and authorization service",
-        branch: "main",
-        lastUpdated: "Updated 3d ago",
-        icon: "A",
-    },
-    {
-        id: 5,
-        name: "Docker Images",
-        owner: "monogear",
-        repo: "docker-images",
-        description: "Base Docker images for Monogear deployments",
-        branch: "main",
-        lastUpdated: "Updated 1w ago",
-        icon: "D",
-    },
-    {
-        id: 6,
-        name: "Documentation",
-        owner: "monogear",
-        repo: "docs",
-        description: "Official documentation and guides",
-        branch: "main",
-        lastUpdated: "Updated 2d ago",
-        icon: "D",
-    },
-]

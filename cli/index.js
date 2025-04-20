@@ -159,7 +159,7 @@ program
       console.log(chalk.bgRed.white('Invalid repository name.'))
       return
     }
-    axios.get("http://localhost:8000/repo/new/" + name)
+    axios.get("http://localhost:8000/dashboard/new/" + name)
       .then(function(res) {
         if (res.data.created) {
           console.log(chalk.bgGreen.black('Repository created:') + " " + chalk.white(name))

@@ -21,7 +21,7 @@ export default function CommitDetailPage({ params }) {
                 <div className="container mx-auto px-4">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center gap-8">
-                            <Link href="/repo" className="flex items-center gap-2">
+                            <Link href="/dashboard" className="flex items-center gap-2">
                                 <div className='flex gap-2 w-full items-center'>
                                     <img src={logo.src} alt="monogear" className="relative z-[2] h-10" draggable="false" />
                                     <p className='text-lg lato font-semibold'>monogear</p>
@@ -31,9 +31,6 @@ export default function CommitDetailPage({ params }) {
                             <nav className="hidden md:flex items-center space-x-6">
                                 <Link href="/dashboard" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
                                     Dashboard
-                                </Link>
-                                <Link href="/repositories" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
-                                    Repositories
                                 </Link>
                                 <Link href="/pipelines" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
                                     Pipelines
@@ -72,11 +69,11 @@ export default function CommitDetailPage({ params }) {
 
             <main className="container mx-auto px-4 py-6">
                 <div className="flex items-center gap-2 mb-4">
-                    <Link href={`/repo/${project.id}`} className="text-gray-400 hover:text-blue-400">
+                    <Link href={`/dashboard/${project.id}`} className="text-gray-400 hover:text-blue-400">
                         {project.owner}/{project.repo}
                     </Link>
                     <ChevronRightIcon className="h-4 w-4 text-gray-400" />
-                    <Link href={`/repo/${project.id}/commits`} className="text-gray-400 hover:text-blue-400">
+                    <Link href={`/dashboard/${project.id}/commits`} className="text-gray-400 hover:text-blue-400">
                         Commits
                     </Link>
                     <ChevronRightIcon className="h-4 w-4 text-gray-400" />

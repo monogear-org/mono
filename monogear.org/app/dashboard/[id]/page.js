@@ -9,9 +9,29 @@ import { BranchSelector } from "../../../components/dashboard/branch-selector"
 import { Code, GitPullRequestIcon, AlertCircle, Play, Database, BarChart3, Shield, Search, GitCommitIcon } from "lucide-react"
 import Link from "next/link"
 import logo from "../../../public/logo.png"
+import { useEffect, useState } from "react"
+import { getHeaders } from "../../lib/fetchHeaders"
 
-export default function ProjectPage({ params }) {
-    const project = projects.find((p) => p.id.toString() === params.id) || projects[0]
+export default function ProjectPage({}) {
+    var server_url = ""
+    try {
+        eval("window")
+        server_url = localStorage.getItem("currentServer")
+        if (server_url == null) {
+            window.location = "/auth"
+            return
+        }
+    } catch {}
+    const [project, setProject] = useState(null)
+    const [requestsCompleted, setRequestsCompleted] = useState(0)
+
+    useEffect(() => {
+        fetch(server_url+"repo/")
+    })
+
+    if (requestsCompleted != 3) {
+        return
+    }
 
     return (
         <div className="min-h-screen bg-[#0A0A0F] text-white">
@@ -19,7 +39,7 @@ export default function ProjectPage({ params }) {
                 <div className="container mx-auto px-4">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center gap-8">
-                            <Link href="/repo" className="flex items-center gap-2">
+                            <Link href="/dashboard" className="flex items-center gap-2">
                                 <div className='flex gap-2 w-full items-center'>
                                     <img src={logo.src} alt="monogear" className="relative z-[2] h-10" draggable="false" />
                                     <p className='text-lg lato font-semibold'>monogear</p>
@@ -29,9 +49,6 @@ export default function ProjectPage({ params }) {
                             <nav className="hidden md:flex items-center space-x-6">
                                 <Link href="/dashboard" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
                                     Dashboard
-                                </Link>
-                                <Link href="/repositories" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
-                                    Repositories
                                 </Link>
                                 <Link href="/pipelines" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
                                     Pipelines
@@ -130,7 +147,7 @@ export default function ProjectPage({ params }) {
                                 <div className="flex items-center space-x-2">
                                     <BranchSelector branches={project.branches} />
 
-                                    <Link href={`/repo/${project.id}/commits`}>
+                                    <Link href={`/dashboard/${project.id}/commits`}>
                                         <Button
                                             variant="outline"
                                             size="sm"

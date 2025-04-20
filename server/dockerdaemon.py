@@ -6,7 +6,7 @@ from db import (
     get_user_password, set_user_password, get_repo_access, add_repo_access, remove_repo_access,
     remove_user_if_no_access, get_all_repo_access, get_all_users, get_configured, set_configured, set_value, get_value
 )
-import time
+import time, datetime
 
 app = Flask(__name__)
 
@@ -256,35 +256,63 @@ def repo_branches(repo):
     resp = Response(json.dumps({"status": "ok", "data": sorted(branches)}), mimetype="application/json")
     return resp
 
+def build_file_tree(path, prefix=""):
+    nodes = []
+    for idx, name in enumerate(sorted(os.listdir(path)), start=1):
+        node_id = f"{prefix}-{idx}" if prefix else str(idx)
+        full_path = os.path.join(path, name)
+        if os.path.isdir(full_path):
+            children = build_file_tree(full_path, node_id)
+            nodes.append({
+                "id": node_id,
+                "name": name,
+                "type": "directory",
+                "children": children
+            })
+        else:
+            nodes.append({
+                "id": node_id,
+                "name": name,
+                "type": "file"
+            })
+    return nodes
+
 @app.route("/repo/<repo>/<branch>/file_tree")
 @require_auth()
 def repo_file_tree(repo, branch):
     base = "/var/www/git"
     repo_path = os.path.join(base, repo)
     if not os.path.isdir(repo_path):
-        resp = Response(json.dumps({"status": "ok", "data": {}}), mimetype="application/json")
-        return resp
+        return Response(json.dumps({"status": "ok", "files": []}), mimetype="application/json")
+
     with tempfile.TemporaryDirectory() as tmp:
-        p=os.system("git config --global --add safe.directory /var/www/git/"+repo)
-        print(p)
-        result = subprocess.run(["git", "clone", "--branch", branch, "--single-branch", repo_path, tmp], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(
+            ["git", "config", "--global", "--add", "safe.directory", repo_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        result = subprocess.run(
+            ["git", "clone", "--branch", branch, "--single-branch", repo_path, tmp],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
         if result.returncode != 0:
-            resp = Response(json.dumps({"status": "error", "message": "clone failed", "details": result.stderr.decode()}), mimetype="application/json")
+            resp = Response(
+                json.dumps({
+                    "status": "error",
+                    "message": "clone failed",
+                    "details": result.stderr.decode()
+                }),
+                mimetype="application/json"
+            )
             resp.status_code = 500
             return resp
-        tree = {}
-        for root, dirs, files in os.walk(tmp):
-            rel = os.path.relpath(root, tmp)
-            d = tree
-            if rel != "":
-                for part in rel.split(os.sep):
-                    d = d.setdefault(part, {})
-            for f in sorted(files):
-                d[f] = None
-            for dir in sorted(dirs):
-                d.setdefault(dir, {})
-        resp = Response(json.dumps({"status": "ok", "data": tree}), mimetype="application/json")
-        return resp
+
+        files = build_file_tree(tmp)
+        return Response(
+            json.dumps({"status": "ok", "files": files}),
+            mimetype="application/json"
+        )
 
 @app.route("/repo/<repo>/<branch>/commits")
 @require_auth()
@@ -293,15 +321,49 @@ def repo_commits(repo, branch):
     repo_path = os.path.join(base, repo)
     if not os.path.isdir(repo_path):
         return json.dumps({"status": "ok", "data": []})
-    p = subprocess.run(["git", "--git-dir", repo_path, "log", branch, "--pretty=format:%H|%an|%ad|%s", "--date=iso"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    p = subprocess.run(
+        ["git", "--git-dir", repo_path, "log", branch,
+            "--pretty=format:%H|%an|%ad|%s", "--date=iso"],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
     lines = p.stdout.decode().splitlines()
+
+    def human(delta):
+        s = int(delta.total_seconds())
+        for name, secs in [
+            ("year", 31536000), ("month", 2592000),
+            ("day", 86400), ("hour", 3600),
+            ("minute", 60), ("second", 1)
+        ]:
+            count = s // secs
+            if count:
+                return f"{count} {name}{'s' if count>1 else ''} ago"
+        return "just now"
+
+    now = datetime.datetime.now()
     commits = []
     for line in lines:
         parts = line.split("|", 3)
-        if len(parts) == 4:
-            commits.append({"hash": parts[0], "author": parts[1], "date": parts[2], "message": parts[3]})
-    resp = Response(json.dumps({"status": "ok", "data": commits}), mimetype="application/json")
-    return resp
+        if len(parts) != 4:
+            continue
+        full_hash, author, date_iso, message = parts
+        try:
+            dt = datetime.datetime.fromisoformat(date_iso.strip())
+            date_str = human(now - dt)
+        except Exception:
+            date_str = date_iso
+
+        commits.append({
+            "id": full_hash[:7],
+            "message": message,
+            "author": author,
+            "date": date_str,
+            "status": "failed"
+        })
+
+    return Response(json.dumps({"status": "ok", "data": commits}),
+                    mimetype="application/json")
 
 @app.route("/repo/new/<name>", methods=["GET"])
 @require_auth(admin_only=True)
@@ -349,18 +411,29 @@ def get_repo_data(name):
         "name": name,
         "description": "no description provided",
         "latestBranch": "master",
-        "lastUpdated": 0
+        "lastUpdated": 0,
+        "repo": name,
+        "id": name,
+        "owner": "monogear",
+        "icon": name[0].upper()
     }
     
-    value = get_value("description_"+name)
+    value = get_value("data_repo_"+name)
     
     if value in [False, None]:
         value = default
+    else:
+        for x in default:
+            if x not in value:
+                value[x] = default[x]
     
     return value
 
 def set_repo_data(name, data):
-    set_value("description_"+name, data)
+    value = get_value("data_repo_"+name)
+    if value in [False, None]:
+        value = {}
+    set_value("data_repo_"+name, value | data)
 
 @app.route("/repos_data")
 @require_auth()
