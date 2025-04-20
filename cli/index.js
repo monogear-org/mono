@@ -28,23 +28,37 @@ program
   .version("0.1.0");
 
 program
-  .command("docker-setup")
-  .description("Install and setup Docker CLI, then guide user to run python3 dockerdaemon.py")
-  .action(() => {
+  .command("setup")
+  .description("Set up MonoGear: Docker, clone repo, and prepare server.")
+  .action(async () => {
     let installed = false;
     try {
       execSync("docker --version", { stdio: "ignore" });
       installed = true;
     } catch (e) {}
     if (installed) {
-      console.log(chalk.bgGreenBright.bold(' DOCKER INSTALLED! '));
+      console.log(chalk.bgGreen.black('Docker is installed and available.'))
     } else {
-      console.log(chalk.bgRedBright.bold(' DOCKER NOT FOUND! '));
-      console.log(chalk.yellowBright.underline("Go to https://www.docker.com/products/docker-desktop and install it!"));
-      return;
+      console.log(chalk.bgRed.white('Docker is not installed.'))
+      console.log(chalk.bgYellow.black('Download from: ') + chalk.underline.white('https://www.docker.com/products/docker-desktop'))
+      return
     }
-    console.log(chalk.cyanBright.bold("To start the Docker server, run: " + chalk.underline("python3 server/dockerdaemon.py")));
-  });
+    var repoUrl = "http://github.com/monogear-org/mono"
+    var repoDir = "mono"
+    if (!fs.existsSync(repoDir)) {
+      try {
+        console.log(chalk.bgBlue.white('Cloning repository:') + " " + chalk.white(repoUrl))
+        await simpleGit().clone(repoUrl)
+        console.log(chalk.bgGreen.black('Repository cloned to:') + " " + chalk.white("./" + repoDir))
+      } catch (e) {
+        console.log(chalk.bgRed.white('Failed to clone repository:') + " " + chalk.white(e.message))
+        return
+      }
+    } else {
+      console.log(chalk.bgYellow.black('Repository already exists at:') + " " + chalk.white("./" + repoDir))
+    }
+    console.log(chalk.bgBlue.white('To start the server, run:') + " " + chalk.bold.bgBlack.white('cd mono/server && python3 docker.py'))
+  })
 
 program
   .command("authenticate")
