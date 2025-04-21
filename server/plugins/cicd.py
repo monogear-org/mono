@@ -10,7 +10,7 @@ import time
 def handle_cicd(repo_name, branch, commit_hash):
     repo_name=repo_name.split(".git")[0]
     username = "cicd-bot"
-    comments = get_value("comments_"+commit_hash)
+    comments = get_value("comments_"+commit_hash[:7])
     if comments in [False, None]:
         comments = []
     comments.append({
@@ -18,7 +18,7 @@ def handle_cicd(repo_name, branch, commit_hash):
         "message": "Building current pushed change and deploying it for staging purposes.",
         "time":time.time()
     })
-    set_value("comments_"+commit_hash, comments)
+    set_value("comments_"+commit_hash[:7], comments)
     zip_path = f"{repo_name}-{branch}-{commit_hash}"
     if os.system(f"cd /tmp && mkdir {zip_path} && mv {zip_path}.zip {zip_path}/ && cd {zip_path} && unzip {zip_path}.zip") != 0:
         set_value(f"commit_status_{commit_hash[:7]}", "failed")
@@ -28,14 +28,14 @@ def handle_cicd(repo_name, branch, commit_hash):
     port=random.randint(40000, 40040)
     try:
         result = subprocess.run(
-            ["./build.sh", "-p", str(port)],
+            ["bash", "build.sh", "-p", str(port)],
             cwd=work_dir,
             timeout=60
         )
     except subprocess.TimeoutExpired:
         set_value(f"commit_status_{commit_hash[:7]}", "success")
         username = "cicd-bot"
-        comments = get_value("comments_"+commit_hash)
+        comments = get_value("comments_"+commit_hash[:7])
         if comments in [False, None]:
             comments = []
         comments.append({
@@ -43,6 +43,16 @@ def handle_cicd(repo_name, branch, commit_hash):
             "message": "Build is currently live at http://localhost:"+str(port),
             "time":time.time()
         })
-        set_value("comments_"+commit_hash, comments)
+        set_value("comments_"+commit_hash[:7], comments)
+    
+    comments = get_value("comments_"+commit_hash[:7])
+    if comments in [False, None]:
+        comments = []
+    comments.append({
+        "name": username,
+        "message": "Build Failed",
+        "time":time.time()
+    })
+    set_value("comments_"+commit_hash[:7], comments)
 
     set_value(f"commit_status_{commit_hash[:7]}", "failed")

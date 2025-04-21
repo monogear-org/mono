@@ -1,16 +1,18 @@
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y \
-    apache2 \
-    apache2-utils \
-    git \
-    spawn-fcgi \
-    fcgiwrap \
-    supervisor \
-    curl \
-    zip \
-    tmux \
-  && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y \
+      apache2 \
+      apache2-utils \
+      git \
+      spawn-fcgi \
+      fcgiwrap \
+      supervisor \
+      curl \
+      zip \
+      tmux && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN a2enmod cgi alias env rewrite auth_basic
 

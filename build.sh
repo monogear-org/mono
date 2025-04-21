@@ -5,9 +5,6 @@ while getopts "p:" opt; do
     *) echo "Usage: $0 [-p port]" >&2; exit 1;;
   esac
 done
-PORT=${PORT:-3000}
-cd monogear.org
-npm install
-npm run build
-npm run start -- -p "$PORT"
-
+PORT=${PORT:-40000}
+cd testapi
+python3 main.py "$PORT"

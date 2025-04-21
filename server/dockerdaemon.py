@@ -2,11 +2,14 @@ import subprocess, json
 from flask import Flask, request, Response
 import os, tempfile
 from functools import wraps
-from db import (
+from plugins.db import (
     get_user_password, set_user_password, get_repo_access, add_repo_access, remove_repo_access,
     remove_user_if_no_access, get_all_repo_access, get_all_users, get_configured, set_configured, set_value, get_value
 )
+import plugins.cicd as cicd
 import time, datetime
+import threading
+
 
 app = Flask(__name__)
 
@@ -119,12 +122,14 @@ def handle_cicd(repo_name, branch, commit_hash):
         }
     }), mimetype="application/json")
     repo_name = repo_name+".git"
+    set_value(f"commit_status_{commit_hash[:7]}", "pending")
     set_repo_data(repo_name, {
         "name": repo_name,
         "description": get_repo_data(repo_name)["description"],
         "latestBranch": branch,
         "lastUpdated": time.time()
     })
+    threading.Thread(target = cicd.handle_cicd, args = [repo_name, branch, commit_hash]).start()
     return resp
 
 @app.route("/access", methods=["POST"])
@@ -353,13 +358,16 @@ def repo_commits(repo, branch):
             date_str = human(now - dt)
         except Exception:
             date_str = date_iso
+        status = get_value(f"commit_status_{full_hash[:7]}")
+        if status in [None, False]:
+            status = "success"
 
         commits.append({
             "id": full_hash[:7],
             "message": message,
             "author": author,
             "date": date_str,
-            "status": "pending"
+            "status": status
         })
 
     return Response(json.dumps({"status": "ok", "data": commits}),
