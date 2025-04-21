@@ -197,7 +197,7 @@ export default function OrganizationSettingsPage() {
                                 </select>
                             </div>
                         </div>
-                        <Button className="bg-[#3B82F6] hover:bg-[#2563EB]" onClick={addUser}>
+                        <Button className="bg-[#3B82F6] hover:bg-[#2563EB] text-white" onClick={addUser}>
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Add Member
                         </Button>

@@ -235,20 +235,16 @@ export default function CommitConversationPage({ params }) {
                     </div>
                 </div>
 
+                {commit.status == "success" ? 
                 <div className="flex justify-end gap-4">
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        className="text-gray-300 border-[#1E1E2A] hover:bg-[#1E1E2A] hover:text-white"
-                    >
-                        <BeakerIcon className="mr-2 h-5 w-5" />
-                        Push to Testing
-                    </Button>
-                    <Button size="lg" className="bg-[#3273FF] hover:bg-[#3273FF]/70 text-white">
+                    <Button size="lg" className="bg-[#3273FF] hover:bg-[#3273FF]/70 text-white" onClick={() => {
+                        fetch(server_url+"prod?commit="+params.commitId, {headers: getHeaders()})
+                    }}>
                         <RocketIcon className="mr-2 h-5 w-5" />
                         Push to Production
                     </Button>
-                </div>
+                </div> : ""
+                }
             </main>
         </div>
     )

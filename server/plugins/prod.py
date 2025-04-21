@@ -1,2 +1,2 @@
-def push_to_prod(repo_name, branch, commit_hash):
+def push_to_prod(commit_hash):
     pass

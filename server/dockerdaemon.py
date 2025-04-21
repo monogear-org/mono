@@ -488,6 +488,12 @@ def comment_on_commit():
     set_value("comments_"+request.args["commit"], comments)
     return json.dumps(comments)
 
+@app.route("/prod")
+@require_auth(admin_only=True)
+def push_to_prod():
+    threading.Thread(target=plugins.prod.push_to_prod, args=[request.args["commit"]]).start()
+    return "true"
+
 regenerate_htpasswd()
 regenerate_apache_conf()
 
