@@ -3,7 +3,8 @@ project_name="a2k"
 
 port_mapping = {
     "5000":"5000",
-    "80":"80"
+    "80":"80",
+    "40000-40040":"40000-40040"
 }
 
 os.system(f"docker build -t {project_name}:latest .")
