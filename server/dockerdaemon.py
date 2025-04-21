@@ -308,7 +308,8 @@ def repo_file_tree(repo, branch):
                 json.dumps({
                     "status": "error",
                     "message": "clone failed",
-                    "details": result.stderr.decode()
+                    "details": result.stderr.decode(),
+                    "files":[]
                 }),
                 mimetype="application/json"
             )
