@@ -47,37 +47,12 @@ export default function Settings() {
                                 <Link href="/repositories" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
                                     Repositories
                                 </Link>
-                                <Link href="/pipelines" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
-                                    Pipelines
-                                </Link>
-                                <Link href="/deployments" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
-                                    Deployments
-                                </Link>
                                 <Link href="/settings" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
                                     Settings
                                 </Link>
                             </nav>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-gray-400 border-[#1E1E2A] hover:bg-[#1E1E2A] hover:text-white"
-                            >
-                                Feedback
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-gray-400 border-[#1E1E2A] hover:bg-[#1E1E2A] hover:text-white"
-                            >
-                                Docs
-                            </Button>
-                            <div className="w-8 h-8 rounded-full bg-[#3273FF] flex items-center justify-center">
-                                <span className="text-sm font-medium">JD</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </header>
