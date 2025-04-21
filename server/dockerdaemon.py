@@ -6,10 +6,10 @@ from plugins.db import (
     get_user_password, set_user_password, get_repo_access, add_repo_access, remove_repo_access,
     remove_user_if_no_access, get_all_repo_access, get_all_users, get_configured, set_configured, set_value, get_value
 )
-import plugins.cicd as cicd
+import plugins.cicd
+import plugins.prod
 import time, datetime
 import threading
-
 
 app = Flask(__name__)
 
@@ -129,7 +129,7 @@ def handle_cicd(repo_name, branch, commit_hash):
         "latestBranch": branch,
         "lastUpdated": time.time()
     })
-    threading.Thread(target = cicd.handle_cicd, args = [repo_name, branch, commit_hash]).start()
+    threading.Thread(target = plugins.cicd.handle_cicd, args = [repo_name, branch, commit_hash]).start()
     return resp
 
 @app.route("/access", methods=["POST"])
