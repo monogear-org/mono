@@ -20,39 +20,39 @@ import logo from "../public/logo.png"
 
 const components = [
     {
-        title: "Alert Dialog",
-        href: "/docs/primitives/alert-dialog",
+        title: "Git Compatibility",
+        href: "https://docs.monogear.org/",
         description:
-            "A modal dialog that interrupts the user with important content and expects a response.",
+            "Full backwards compatibility with Git, supporting all your existing workflows and tools.",
     },
     {
-        title: "Hover Card",
-        href: "/docs/primitives/hover-card",
+        title: "Built-in Code Viewer",
+        href: "https://docs.monogear.org/",
         description:
-            "For sighted users to preview content available behind a link.",
+            "Review and navigate your codebase with our powerful integrated code viewer.",
     },
     {
-        title: "Progress",
-        href: "/docs/primitives/progress",
+        title: "Built-in Code Viewer",
+        href: "https://docs.monogear.org/",
         description:
-            "Displays an indicator showing the completion progress of a task, typically displayed as a progress bar.",
+            "Pre-configured yet fully customizable CI/CD pipelines right out of the box.",
     },
     {
-        title: "Scroll-area",
-        href: "/docs/primitives/scroll-area",
-        description: "Visually or semantically separates content.",
+        title: "Access Control",
+        href: "https://docs.monogear.org/",
+        description: "Per-repository and per-user access controls for maximum security and compliance.",
     },
     {
-        title: "Tabs",
-        href: "/docs/primitives/tabs",
+        title: "Fully Programmable",
+        href: "https://docs.monogear.org/",
         description:
-            "A set of layered sections of content—known as tab panels—that are displayed one at a time.",
+            "Extend core functionality with bots, extensions, and custom pipeline components.",
     },
     {
-        title: "Tooltip",
-        href: "/docs/primitives/tooltip",
+        title: "Dockerized Deployment",
+        href: "https://docs.monogear.org/",
         description:
-            "A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.",
+            "Deploy Monogear on your own infrastructure with our ready-to-use Docker containers.",
     },
 ]
 
@@ -79,10 +79,10 @@ export default function Navbar() {
                                             >
                                                 {/* <Icons.logo className="h-6 w-6" /> */}
                                                 <div className="mb-2 mt-4 text-lg font-medium">
-                                                    Products
+                                                    Monogear
                                                 </div>
                                                 <p className="text-sm leading-tight text-muted-foreground">
-                                                    Lorem ipsum dolor, sit amet consectetur adipisicing elit. Sed, iste?
+                                                    The self-hostable, fully programmable mono-repo platform for end-to-end DevOps.
                                                 </p>
                                             </a>
                                         </NavigationMenuLink>
@@ -100,7 +100,7 @@ export default function Navbar() {
                             </NavigationMenuContent>
                         </NavigationMenuItem>
                         <NavigationMenuItem>
-                            <NavigationMenuTrigger>Components</NavigationMenuTrigger>
+                            <NavigationMenuTrigger>Features</NavigationMenuTrigger>
                             <NavigationMenuContent>
                                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
                                     {components.map((component) => (
@@ -116,7 +116,7 @@ export default function Navbar() {
                             </NavigationMenuContent>
                         </NavigationMenuItem>
                         <NavigationMenuItem>
-                            <Link href="/docs" legacyBehavior passHref>
+                            <Link href="https://docs.monogear.org/" target="_blank" legacyBehavior passHref>
                                 <NavigationMenuLink className={`${navigationMenuTriggerStyle()}`} >
                                     Documentation
                                 </NavigationMenuLink>
@@ -126,7 +126,7 @@ export default function Navbar() {
                 </NavigationMenu>
 
                 <div className="w-full flex items-center justify-center md:justify-end gap-10">
-                    <a href="/app">
+                    <a href="/dashboard">
                         <InteractiveHoverButton>Launch Setup</InteractiveHoverButton>
                     </a>
                 </div>
