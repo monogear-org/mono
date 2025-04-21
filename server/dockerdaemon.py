@@ -264,6 +264,8 @@ def repo_branches(repo):
 def build_file_tree(path, prefix=""):
     nodes = []
     for idx, name in enumerate(sorted(os.listdir(path)), start=1):
+        if name == ".git":
+            continue
         node_id = f"{prefix}-{idx}" if prefix else str(idx)
         full_path = os.path.join(path, name)
         if os.path.isdir(full_path):
