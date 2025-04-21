@@ -7,6 +7,7 @@ import { Input } from "../../components/ui/input"
 import { PlusIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, GitBranchIcon, ClockIcon } from "lucide-react"
 import logo from "../../public/logo.png"
 import { getHeaders } from "../../lib/fetchHeaders"
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button as muiButton } from '@mui/material';
 
 function timeAgo(unixTime) {
     const now = Date.now();
@@ -57,9 +58,10 @@ export default function Dashboard() {
         }).then(async (x) => {
             setRepos(await x.json())
         })
-    })
+    }, [])
 
     const [searchTerm, setSearchTerm] = useState("")
+    const [open, setOpen] = useState(false);
 
     const filteredRepos = repos.filter((repo) => {
         if (!searchTerm.trim()) {
@@ -91,37 +93,12 @@ export default function Dashboard() {
                                 <Link href="/dashboard" className="text-white hover:text-blue-400 text-sm font-medium">
                                     Dashboard
                                 </Link>
-                                <Link href="/pipelines" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
-                                    Pipelines
-                                </Link>
-                                <Link href="/deployments" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
-                                    Deployments
-                                </Link>
                                 <Link href="/settings" className="text-gray-400 hover:text-blue-400 text-sm font-medium">
                                     Settings
                                 </Link>
                             </nav>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-gray-400 border-[#1E1E2A] hover:bg-[#1E1E2A] hover:text-white"
-                            >
-                                Feedback
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-gray-400 border-[#1E1E2A] hover:bg-[#1E1E2A] hover:text-white"
-                            >
-                                Docs
-                            </Button>
-                            <div className="w-8 h-8 rounded-full bg-[#3273FF] flex items-center justify-center">
-                                <span className="text-sm font-medium">JD</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </header>
@@ -130,7 +107,9 @@ export default function Dashboard() {
                 <div className="flex flex-col gap-8">
                     <div className="flex items-center justify-between">
                         <h1 className="text-2xl font-bold">Repos</h1>
-                        <Button className="bg-[#3273FF] hover:bg-[#3273FF]/70 text-white">
+                        <Button className="bg-[#3273FF] hover:bg-[#3273FF]/70 text-white" onClick={() => {
+                            setOpen(true)
+                        }}>
                             <PlusIcon className="mr-2 h-4 w-4" />
                             New Repo
                         </Button>
@@ -168,6 +147,22 @@ export default function Dashboard() {
                     )}
                 </div>
             </main>
+            <Dialog open={open} onClose={() => setOpen(false)}>
+                <div style={{backgroundColor: "rgb(10 10 15 / var(--tw-bg-opacity, 1))", color:"white", paddingLeft: "40px", paddingRight: "40px", padding: "20px"}}>
+                    <h1 className="text-2xl pb-4" style={{textAlign: "center"}}>Repository Name</h1>
+                    <input style={{border: "1px solid rgba(255, 255, 255, 0.15)", backgroundColor: "rgba(255, 255, 255, 0.1)", borderRadius: "8px", padding: "5px"}} id="reponame"></input>
+                    <br></br>
+                    <div className="flex justify-center items-center">
+                        <Button className="bg-[#3273FF] hover:bg-[#3273FF]/70 text-white mt-5 pl-7 pr-7" onClick={() => {
+                            fetch(server_url+"repo/new/"+document.getElementById("reponame").value, {headers: getHeaders()}).then((x) => {
+                                window.location = window.location.href
+                            })
+                        }}>
+                            Submit
+                        </Button>
+                    </div>
+                </div>
+            </Dialog>
         </div>
     )
 }
